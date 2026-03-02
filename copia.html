@@ -639,138 +639,142 @@
   </div>
 
   <script>
-    if (!window.jspdf) {
-      alert("Erro: Não foi possível carregar a biblioteca necessária para gerar o PDF (jsPDF). Verifique sua conexão e tente novamente.");
+  if (!window.jspdf) {
+    alert("Erro: Não foi possível carregar a biblioteca necessária para gerar o PDF (jsPDF). Verifique sua conexão e tente novamente.");
+  }
+  if (!window.Chart) {
+    alert("Erro: Não foi possível carregar a biblioteca necessária para os gráficos (Chart.js). Verifique sua conexão e tente novamente.");
+  }
+
+  function validateEmail(email) {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+  }
+  function sanitizeInput(input) { return DOMPurify.sanitize(input); }
+  function sanitizeText(s) { return DOMPurify.sanitize(String(s || "")); }
+  function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+  function isValidAge(ageStr){
+    const n = Number(ageStr);
+    return Number.isFinite(n) && n >= 10 && n <= 120;
+  }
+
+  // ====== ENVIO AUTOMÁTICO (Apps Script + Sheets + E-mail) ======
+  const ENDPOINT_URL = "https://script.google.com/macros/s/AKfycbz32nkhagXbfQ1Wl5PcgctOK7mtNKKwkx_CfhjKKDImuKV9cGYA0RI6N_ROtgHLjmKvnA/exec";
+  const API_KEY = "COLOQUE_AQUI_A_MESMA_SENHA_DO_CODE_GS";
+  const QUEUE_KEY = "impulso_pending_queue_v1";
+
+  function impulsoLoadQueue(){ try { return JSON.parse(localStorage.getItem(QUEUE_KEY) || "[]"); } catch { return []; } }
+  function impulsoSaveQueue(q){ localStorage.setItem(QUEUE_KEY, JSON.stringify(q)); }
+  function impulsoEnqueue(payload){ const q = impulsoLoadQueue(); q.push(payload); impulsoSaveQueue(q); }
+
+  async function impulsoPost(payload){
+    await fetch(ENDPOINT_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+  }
+
+  async function impulsoSendWithRetry(payload, tries=3){
+    for(let i=1; i<=tries; i++){
+      try { await impulsoPost(payload); return true; }
+      catch(e){ await new Promise(r => setTimeout(r, 200 + i*i*200)); }
     }
-    if (!window.Chart) {
-      alert("Erro: Não foi possível carregar a biblioteca necessária para os gráficos (Chart.js). Verifique sua conexão e tente novamente.");
+    return false;
+  }
+
+  async function impulsoFlushQueue(){
+    const q = impulsoLoadQueue();
+    if (!q.length) return;
+
+    const remaining = [];
+    for (const item of q){
+      const ok = await impulsoSendWithRetry(item, 3);
+      if (!ok) remaining.push(item);
+      await new Promise(r => setTimeout(r, 150));
     }
+    impulsoSaveQueue(remaining);
+  }
 
-    function validateEmail(email) {
-      const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      return re.test(email);
+  async function impulsoSendResult(data){
+    const payload = {
+      apiKey: API_KEY,
+      testId: data.testId || "sem_testId",
+      timestampClient: new Date().toISOString(),
+
+      nome: data.nome || "",
+      profissao: data.profissao || "",
+      idade: data.idade || "",
+      email: data.email || "",
+
+      percentualA: data.percentualA ?? "",
+      percentualB: data.percentualB ?? "",
+      percentualC: data.percentualC ?? "",
+
+      totalA: data.totalA ?? "",
+      totalB: data.totalB ?? "",
+      totalC: data.totalC ?? "",
+      totalGeral: data.totalGeral ?? "",
+
+      vazamento: data.vazamento ?? "",
+
+      // NOVO: PDF em base64 para o Apps Script anexar
+      pdfBase64: data.pdfBase64 ?? "",
+      pdfFileName: data.pdfFileName ?? "",
+
+      userAgent: navigator.userAgent
+    };
+
+    const ok = await impulsoSendWithRetry(payload, 3);
+    if (!ok) impulsoEnqueue(payload);
+  }
+
+  window.addEventListener("load", () => { impulsoFlushQueue(); });
+  window.addEventListener("online", () => { impulsoFlushQueue(); });
+
+  // ====== NOVO: detecção e abertura forçada do mailto (iPhone/Android/desktop) ======
+  function isIOS(){
+    const ua = navigator.userAgent || "";
+    return /iPhone|iPad|iPod/i.test(ua);
+  }
+  function isAndroid(){
+    const ua = navigator.userAgent || "";
+    return /Android/i.test(ua);
+  }
+  function forceOpenMailtoUniversal(mailtoHref){
+    if(!mailtoHref) return;
+
+    const attempt = () => {
+      try{ openMailtoByAnchor(mailtoHref); }catch(e){}
+      try{ window.location.href = mailtoHref; }catch(e){}
+      try{ window.open(mailtoHref, "_self"); }catch(e){}
+      try{
+        const ifr = document.createElement("iframe");
+        ifr.style.display = "none";
+        ifr.src = mailtoHref;
+        document.body.appendChild(ifr);
+        setTimeout(() => { try { ifr.remove(); } catch(e) {} }, 800);
+      }catch(e){}
+    };
+
+    if (isIOS()){
+      setTimeout(attempt, 0);
+      setTimeout(attempt, 350);
+      setTimeout(attempt, 900);
+    } else if (isAndroid()){
+      setTimeout(attempt, 0);
+      setTimeout(attempt, 250);
+      setTimeout(attempt, 700);
+    } else {
+      setTimeout(attempt, 0);
+      setTimeout(attempt, 250);
     }
-    function sanitizeInput(input) { return DOMPurify.sanitize(input); }
-    function sanitizeText(s) { return DOMPurify.sanitize(String(s || "")); }
-    function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
-    function isValidAge(ageStr){
-      const n = Number(ageStr);
-      return Number.isFinite(n) && n >= 10 && n <= 120;
-    }
+  }
 
-    // ====== ENVIO AUTOMÁTICO (Apps Script + Sheets + E-mail) ======
-    // CORREÇÃO: URL precisa ser string com https:// e ponto-e-vírgula
-    const ENDPOINT_URL = "https://script.google.com/macros/s/AKfycbz32nkhagXbfQ1Wl5PcgctOK7mtNKKwkx_CfhjKKDImuKV9cGYA0RI6N_ROtgHLjmKvnA/exec";
-    const API_KEY = "coloque aqui a sua senha";
-    const QUEUE_KEY = "impulso_pending_queue_v1";
-
-    function impulsoLoadQueue(){ try { return JSON.parse(localStorage.getItem(QUEUE_KEY) || "[]"); } catch { return []; } }
-    function impulsoSaveQueue(q){ localStorage.setItem(QUEUE_KEY, JSON.stringify(q)); }
-    function impulsoEnqueue(payload){ const q = impulsoLoadQueue(); q.push(payload); impulsoSaveQueue(q); }
-
-    async function impulsoPost(payload){
-      await fetch(ENDPOINT_URL, {
-        method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-    }
-
-    async function impulsoSendWithRetry(payload, tries=3){
-      for(let i=1; i<=tries; i++){
-        try { await impulsoPost(payload); return true; }
-        catch(e){ await new Promise(r => setTimeout(r, 200 + i*i*200)); }
-      }
-      return false;
-    }
-
-    async function impulsoFlushQueue(){
-      const q = impulsoLoadQueue();
-      if (!q.length) return;
-
-      const remaining = [];
-      for (const item of q){
-        const ok = await impulsoSendWithRetry(item, 3);
-        if (!ok) remaining.push(item);
-        await new Promise(r => setTimeout(r, 150));
-      }
-      impulsoSaveQueue(remaining);
-    }
-
-    async function impulsoSendResult(data){
-      const payload = {
-        apiKey: API_KEY,
-        testId: data.testId || "sem_testId",
-        timestampClient: new Date().toISOString(),
-
-        nome: data.nome || "",
-        profissao: data.profissao || "",
-        idade: data.idade || "",
-        email: data.email || "",
-
-        percentualA: data.percentualA ?? "",
-        percentualB: data.percentualB ?? "",
-        percentualC: data.percentualC ?? "",
-
-        totalA: data.totalA ?? "",
-        totalB: data.totalB ?? "",
-        totalC: data.totalC ?? "",
-        totalGeral: data.totalGeral ?? "",
-
-        vazamento: data.vazamento ?? "",
-        userAgent: navigator.userAgent
-      };
-
-      const ok = await impulsoSendWithRetry(payload, 3);
-      if (!ok) impulsoEnqueue(payload);
-    }
-
-    window.addEventListener("load", () => { impulsoFlushQueue(); });
-    window.addEventListener("online", () => { impulsoFlushQueue(); });
-
-    // ====== NOVO: detecção e abertura forçada do mailto (iPhone/Android/desktop) ======
-    function isIOS(){
-      const ua = navigator.userAgent || "";
-      return /iPhone|iPad|iPod/i.test(ua);
-    }
-    function isAndroid(){
-      const ua = navigator.userAgent || "";
-      return /Android/i.test(ua);
-    }
-    function forceOpenMailtoUniversal(mailtoHref){
-      if(!mailtoHref) return;
-
-      const attempt = () => {
-        try{ openMailtoByAnchor(mailtoHref); }catch(e){}
-        try{ window.location.href = mailtoHref; }catch(e){}
-        try{ window.open(mailtoHref, "_self"); }catch(e){}
-        try{
-          const ifr = document.createElement("iframe");
-          ifr.style.display = "none";
-          ifr.src = mailtoHref;
-          document.body.appendChild(ifr);
-          setTimeout(() => { try { ifr.remove(); } catch(e) {} }, 800);
-        }catch(e){}
-      };
-
-      if (isIOS()){
-        setTimeout(attempt, 0);
-        setTimeout(attempt, 350);
-        setTimeout(attempt, 900);
-      } else if (isAndroid()){
-        setTimeout(attempt, 0);
-        setTimeout(attempt, 250);
-        setTimeout(attempt, 700);
-      } else {
-        setTimeout(attempt, 0);
-        setTimeout(attempt, 250);
-      }
-    }
-
-    // ===== Material =====
-    function triadMaterialFullText(){
-      return [
+  // ===== Material =====
+  function triadMaterialFullText(){
+    return [
 "TRÍADE DO TEMPO — Coloque o relógio e a agenda para funcionarem",
 "",
 "A Tríade do Tempo é um modelo atualizado de classificação que mostra, gráfica e percentualmente, a forma como você utiliza suas horas.",
@@ -797,304 +801,315 @@
 "O Equilibrista: Circunstância e Urgência semelhantes. Alto estresse; poucos 'não'; pouco planejamento; esgotamento; sempre ocupado e preocupado.",
 "Homem de Ferro: Importância maior; Circunstâncias em segundo. Planejamento e estratégia; atenção ao exagero nas liberdades e distrações.",
 "Super Poderoso Thor: Importância maior; Urgência em segundo. Muito próximo da tríade ideal; preparo, planejamento e alto valor profissional; próximo passo é refinar para resultados ainda maiores."
-      ].join("\n");
+    ].join("\n");
+  }
+
+  function triadPickProfile(A, B, C){
+    const a = Number(A), b = Number(B), c = Number(C);
+
+    if(Math.abs(a - c) <= 6 && a > b && c > b){
+      return { nome: "O Equilibrista", texto: "Circunstância e Urgência muito semelhantes. Alto estresse, absorve urgências e circunstâncias, diz poucos 'não' e quase não planeja. Esgotamento e preocupação constantes." };
+    }
+    if(c >= b && c >= a && a >= b){
+      return { nome: "Super Homem", texto: "Urgência maior e Circunstâncias em segundo. Tendência a viver apagando incêndios, resolvendo crises e ajudando os outros com tudo. Riscos: estresse, cansaço, depressão, insegurança e doenças." };
+    }
+    if(a >= b && a >= c && c >= b){
+      return { nome: "Hommer Simpson", texto: "Circunstância maior e Urgência em segundo. Vida ao acaso, sem plano e sem projeto. Hora de assumir a posição de piloto e lutar pelos seus sonhos." };
+    }
+    if(b >= a && b >= c && a >= c){
+      return { nome: "Homem de Ferro", texto: "Importância maior e Circunstâncias em segundo. Perfil estrategista e planejador. Ajuste: reduzir distrações/liberdades excessivas para avançar ao extraordinário." };
+    }
+    if(b >= a && b >= c && c >= a){
+      return { nome: "Super Poderoso Thor", texto: "Importância maior e Urgência em segundo. Muito próximo da tríade ideal: preparo, planejamento e alto valor profissional. Próximo passo: refinar hábitos para resultados ainda maiores." };
+    }
+    if(b >= a && b >= c) return { nome: "Predominância em Importância (B)", texto: "Você tende a priorizar atividades relevantes e com resultado." };
+    if(c >= a && c >= b) return { nome: "Predominância em Urgência (C)", texto: "Você tende a operar com prazos curtos e pressão." };
+    return { nome: "Predominância em Circunstância (A)", texto: "Você tende a gastar tempo com atividades desnecessárias/excessivas." };
+  }
+
+  function triadBuildEmailBody(name, profession, age, email, totals, percentages, energyLeak){
+    const prof = triadPickProfile(Number(percentages.A), Number(percentages.B), Number(percentages.C));
+    const dt = new Date().toLocaleString("pt-BR");
+
+    return [
+      "TRÍADE DO TEMPO — Resultado",
+      `Data/Hora: ${dt}`,
+      "",
+      "1) Identificação",
+      `• Nome: ${name}`,
+      `• Profissão: ${profession}`,
+      `• Idade: ${age}`,
+      `• E-mail: ${email}`,
+      "",
+      "2) Distribuição (%)",
+      `• Importância (B): ${Number(percentages.B).toFixed(1)}%`,
+      `• Urgência (C): ${Number(percentages.C).toFixed(1)}%`,
+      `• Circunstância (A): ${Number(percentages.A).toFixed(1)}%`,
+      "",
+      "3) Pontuação",
+      `• A/B/C: ${totals.A}/${totals.B}/${totals.C}`,
+      `• Total Geral: ${totals.General}`,
+      `• Vazamento (A + C): ${energyLeak}`,
+      "",
+      "4) Perfil (pelo material)",
+      `• ${prof.nome}`,
+      `• ${prof.texto}`,
+      "",
+      "Obs.: PDF e HTML foram salvos no dispositivo."
+    ].join("\n");
+  }
+
+  const MAILTO_TO = "impulsoflow@gmail.com";
+  function buildMailtoHref(prettyData, totals, percentages, energyLeak) {
+    const subject = `Triade do Tempo - ${prettyData.nome}`;
+    const body = triadBuildEmailBody(prettyData.nome, prettyData.profissao, prettyData.idade, prettyData.email, totals, percentages, energyLeak);
+
+    return (
+      "mailto:" + encodeURIComponent(MAILTO_TO) +
+      "?subject=" + encodeURIComponent(subject) +
+      "&body=" + encodeURIComponent(body)
+    );
+  }
+
+  function openMailtoByAnchor(mailtoHref){
+    const a = document.createElement("a");
+    a.setAttribute("href", mailtoHref);
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+
+  function ensureMailtoFallbackLink(mailtoHref){
+    const host = document.getElementById("mailtoFallbackHost");
+    if(!host) return;
+
+    let fallback = document.getElementById("mailto-fallback");
+    if(!fallback){
+      fallback = document.createElement("a");
+      fallback.id = "mailto-fallback";
+      fallback.textContent = "Se o e-mail não abriu, toque aqui para abrir e enviar";
+      fallback.href = mailtoHref;
+
+      fallback.style.display = "inline-block";
+      fallback.style.padding = "12px 16px";
+      fallback.style.borderRadius = "12px";
+      fallback.style.textDecoration = "none";
+      fallback.style.background = "#084aa0";
+      fallback.style.color = "#fff";
+      fallback.style.fontWeight = "800";
+      fallback.style.cursor = "pointer";
+      fallback.style.border = "1px solid rgba(11,99,206,.25)";
+      fallback.style.boxShadow = "0 6px 18px rgba(2,6,23,.08)";
+
+      host.appendChild(fallback);
+    } else {
+      fallback.href = mailtoHref;
+      fallback.style.display = "inline-block";
+    }
+  }
+
+  // ====== NOVO: PDF em base64 (para anexo no Apps Script) ======
+  function pdfDataUrlToBase64_(dataUrl){
+    return String(dataUrl || "").replace(/^data:application\/pdf;base64,/, "");
+  }
+
+  function buildTriadePdfDoc_(name, profession, age, email, totals, percentages, energyLeak, triadChartImg, idealChartImg){
+    if (!window.jspdf) throw new Error("jsPDF não está disponível.");
+    const { jsPDF } = window.jspdf;
+
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    const pageW = 210, pageH = 297;
+    const margin = 14;
+    const contentW = pageW - margin * 2;
+    let y = margin;
+
+    function newPageIfNeeded(extraH) {
+      if (y + extraH > pageH - margin) { doc.addPage(); y = margin; }
     }
 
-    function triadPickProfile(A, B, C){
-      const a = Number(A), b = Number(B), c = Number(C);
-
-      if(Math.abs(a - c) <= 6 && a > b && c > b){
-        return { nome: "O Equilibrista", texto: "Circunstância e Urgência muito semelhantes. Alto estresse, absorve urgências e circunstâncias, diz poucos 'não' e quase não planeja. Esgotamento e preocupação constantes." };
-      }
-      if(c >= b && c >= a && a >= b){
-        return { nome: "Super Homem", texto: "Urgência maior e Circunstâncias em segundo. Tendência a viver apagando incêndios, resolvendo crises e ajudando os outros com tudo. Riscos: estresse, cansaço, depressão, insegurança e doenças." };
-      }
-      if(a >= b && a >= c && c >= b){
-        return { nome: "Hommer Simpson", texto: "Circunstância maior e Urgência em segundo. Vida ao acaso, sem plano e sem projeto. Hora de assumir a posição de piloto e lutar pelos seus sonhos." };
-      }
-      if(b >= a && b >= c && a >= c){
-        return { nome: "Homem de Ferro", texto: "Importância maior e Circunstâncias em segundo. Perfil estrategista e planejador. Ajuste: reduzir distrações/liberdades excessivas para avançar ao extraordinário." };
-      }
-      if(b >= a && b >= c && c >= a){
-        return { nome: "Super Poderoso Thor", texto: "Importância maior e Urgência em segundo. Muito próximo da tríade ideal: preparo, planejamento e alto valor profissional. Próximo passo: refinar hábitos para resultados ainda maiores." };
-      }
-      if(b >= a && b >= c) return { nome: "Predominância em Importância (B)", texto: "Você tende a priorizar atividades relevantes e com resultado." };
-      if(c >= a && c >= b) return { nome: "Predominância em Urgência (C)", texto: "Você tende a operar com prazos curtos e pressão." };
-      return { nome: "Predominância em Circunstância (A)", texto: "Você tende a gastar tempo com atividades desnecessárias/excessivas." };
-    }
-
-    function triadBuildEmailBody(name, profession, age, email, totals, percentages, energyLeak){
-      const prof = triadPickProfile(Number(percentages.A), Number(percentages.B), Number(percentages.C));
-      const dt = new Date().toLocaleString("pt-BR");
-
-      return [
-        "TRÍADE DO TEMPO — Resultado",
-        `Data/Hora: ${dt}`,
-        "",
-        "1) Identificação",
-        `• Nome: ${name}`,
-        `• Profissão: ${profession}`,
-        `• Idade: ${age}`,
-        `• E-mail: ${email}`,
-        "",
-        "2) Distribuição (%)",
-        `• Importância (B): ${Number(percentages.B).toFixed(1)}%`,
-        `• Urgência (C): ${Number(percentages.C).toFixed(1)}%`,
-        `• Circunstância (A): ${Number(percentages.A).toFixed(1)}%`,
-        "",
-        "3) Pontuação",
-        `• A/B/C: ${totals.A}/${totals.B}/${totals.C}`,
-        `• Total Geral: ${totals.General}`,
-        `• Vazamento (A + C): ${energyLeak}`,
-        "",
-        "4) Perfil (pelo material)",
-        `• ${prof.nome}`,
-        `• ${prof.texto}`,
-        "",
-        "Obs.: PDF e HTML foram salvos no dispositivo."
-      ].join("\n");
-    }
-
-    const MAILTO_TO = "impulsoflow@gmail.com";
-    function buildMailtoHref(prettyData, totals, percentages, energyLeak) {
-      const subject = `Triade do Tempo - ${prettyData.nome}`;
-      const body = triadBuildEmailBody(prettyData.nome, prettyData.profissao, prettyData.idade, prettyData.email, totals, percentages, energyLeak);
-
-      return (
-        "mailto:" + encodeURIComponent(MAILTO_TO) +
-        "?subject=" + encodeURIComponent(subject) +
-        "&body=" + encodeURIComponent(body)
-      );
-    }
-
-    function openMailtoByAnchor(mailtoHref){
-      const a = document.createElement("a");
-      a.setAttribute("href", mailtoHref);
-      a.style.display = "none";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    }
-
-    function ensureMailtoFallbackLink(mailtoHref){
-      const host = document.getElementById("mailtoFallbackHost");
-      if(!host) return;
-
-      let fallback = document.getElementById("mailto-fallback");
-      if(!fallback){
-        fallback = document.createElement("a");
-        fallback.id = "mailto-fallback";
-        fallback.textContent = "Se o e-mail não abriu, toque aqui para abrir e enviar";
-        fallback.href = mailtoHref;
-
-        fallback.style.display = "inline-block";
-        fallback.style.padding = "12px 16px";
-        fallback.style.borderRadius = "12px";
-        fallback.style.textDecoration = "none";
-        fallback.style.background = "#084aa0";
-        fallback.style.color = "#fff";
-        fallback.style.fontWeight = "800";
-        fallback.style.cursor = "pointer";
-        fallback.style.border = "1px solid rgba(11,99,206,.25)";
-        fallback.style.boxShadow = "0 6px 18px rgba(2,6,23,.08)";
-
-        host.appendChild(fallback);
-      } else {
-        fallback.href = mailtoHref;
-        fallback.style.display = "inline-block";
-      }
-    }
-
-    function generatePDF(name, profession, age, email, totals, percentages, energyLeak, triadChartImg, idealChartImg) {
-      if (!window.jspdf) throw new Error("jsPDF não está disponível.");
-      const { jsPDF } = window.jspdf;
-
-      const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-      const pageW = 210, pageH = 297;
-      const margin = 14;
-      const contentW = pageW - margin * 2;
-      let y = margin;
-
-      function newPageIfNeeded(extraH) {
-        if (y + extraH > pageH - margin) {
-          doc.addPage();
-          y = margin;
-        }
-      }
-
-      function addH1(text) {
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(16);
-        doc.setTextColor(2, 136, 209);
-        newPageIfNeeded(10);
-        doc.text(text, pageW / 2, y, { align: "center" });
-        y += 9;
-        doc.setTextColor(0, 0, 0);
-      }
-
-      function addH2(text) {
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(12);
-        doc.setTextColor(0, 64, 128);
-        newPageIfNeeded(8);
-        doc.text(text, margin, y);
-        y += 7;
-        doc.setTextColor(0, 0, 0);
-      }
-
-      function addKeyValue(label, value) {
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(10);
-        const left = `${label}:`;
-        const leftW = doc.getTextWidth(left);
-
-        newPageIfNeeded(5);
-        doc.text(margin, y, left);
-
-        doc.setFont("helvetica", "normal");
-        doc.text(margin + leftW + 2, y, String(value));
-
-        y += 5;
-      }
-
-      function addParagraph(text, fontSize = 10, lineH = 4.8) {
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(fontSize);
-        const lines = doc.splitTextToSize(String(text), contentW);
-        lines.forEach(ln => {
-          newPageIfNeeded(lineH);
-          doc.text(margin, y, ln);
-          y += lineH;
-        });
-        y += 2;
-      }
-
-      function addImageContain(imgData, boxX, boxY, boxW, boxH) {
-        try {
-          const props = doc.getImageProperties(imgData);
-          const imgW = props.width || 1;
-          const imgH = props.height || 1;
-
-          const scale = Math.min(boxW / imgW, boxH / imgH);
-          const drawW = imgW * scale;
-          const drawH = imgH * scale;
-
-          const dx = boxX + (boxW - drawW) / 2;
-          const dy = boxY + (boxH - drawH) / 2;
-
-          doc.addImage(imgData, "PNG", dx, dy, drawW, drawH);
-        } catch(e) {}
-      }
-
-      addH1("ImpulsoCoaching");
+    function addH1(text) {
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(14);
+      doc.setFontSize(16);
+      doc.setTextColor(2, 136, 209);
+      newPageIfNeeded(10);
+      doc.text(text, pageW / 2, y, { align: "center" });
+      y += 9;
+      doc.setTextColor(0, 0, 0);
+    }
+
+    function addH2(text) {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
       doc.setTextColor(0, 64, 128);
-      doc.text("Teste da Tríade do Tempo", pageW / 2, y, { align: "center" });
+      newPageIfNeeded(8);
+      doc.text(text, margin, y);
+      y += 7;
       doc.setTextColor(0, 0, 0);
-      y += 10;
-
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
-      doc.setTextColor(71, 85, 105);
-      doc.text(`Gerado em: ${new Date().toLocaleString("pt-BR")}`, pageW / 2, y, { align: "center" });
-      doc.setTextColor(0, 0, 0);
-      y += 10;
-
-      addH2("1) Dados do participante");
-      addKeyValue("Nome", sanitizeInput(name));
-      addKeyValue("Profissão", sanitizeInput(profession));
-      addKeyValue("Idade", sanitizeInput(String(age)));
-      addKeyValue("E-mail", sanitizeInput(email));
-      y += 3;
-
-      addH2("2) Distribuição (%)");
-      addKeyValue("Importância (B)", `${Number(percentages.B).toFixed(1)}%`);
-      addKeyValue("Urgência (C)", `${Number(percentages.C).toFixed(1)}%`);
-      addKeyValue("Circunstância (A)", `${Number(percentages.A).toFixed(1)}%`);
-      y += 3;
-
-      addH2("3) Pontuação");
-      addKeyValue("A/B/C", `${totals.A}/${totals.B}/${totals.C}`);
-      addKeyValue("Total Geral", totals.General);
-
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(10);
-      doc.setTextColor(220, 38, 38);
-      newPageIfNeeded(6);
-      doc.text(margin, y, `Vazamento de Energia (A + C): ${energyLeak}`);
-      doc.setTextColor(0, 0, 0);
-      y += 8;
-
-      const prof = triadPickProfile(Number(percentages.A), Number(percentages.B), Number(percentages.C));
-      addH2("4) Perfil (pelo material)");
-      addParagraph(`${prof.nome}\n\n${prof.texto}`, 10, 4.8);
-
-      addH2("5) Gráficos");
-      const boxSize = 85;
-      const gap = 10;
-      const boxY = y + 3;
-      newPageIfNeeded(boxSize + 18);
-
-      doc.setDrawColor(207, 230, 255);
-      doc.roundedRect(margin, boxY, boxSize, boxSize, 3, 3, "S");
-      doc.roundedRect(margin + boxSize + gap, boxY, boxSize, boxSize, 3, 3, "S");
-
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(10);
-      doc.text("Sua Tríade", margin + boxSize / 2, boxY - 2, { align: "center" });
-      doc.text("Tríade Ideal", margin + boxSize + gap + boxSize / 2, boxY - 2, { align: "center" });
-
-      if (triadChartImg) addImageContain(triadChartImg, margin, boxY, boxSize, boxSize);
-      if (idealChartImg) addImageContain(idealChartImg, margin + boxSize + gap, boxY, boxSize, boxSize);
-
-      y = boxY + boxSize + 12;
-
-      addH2("6) Texto completo do material (referência do modelo)");
-      const materialLines = String(triadMaterialFullText()).replace(/\r\n/g, "\n").split("\n");
-
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
-
-      materialLines.forEach(line => {
-        if (line.trim() === "") {
-          newPageIfNeeded(4.8);
-          y += 4.8;
-          return;
-        }
-        const wrapped = doc.splitTextToSize(line, contentW);
-        wrapped.forEach(wln => {
-          newPageIfNeeded(4.8);
-          doc.text(margin, y, wln);
-          y += 4.8;
-        });
-      });
-
-      newPageIfNeeded(14);
-      y += 5;
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
-      doc.setTextColor(71, 85, 105);
-      doc.text("Fonte: Instituto Impulso Coaching – www.impulsocoaching.com.br", pageW / 2, y, { align: "center" });
-      doc.setTextColor(0, 0, 0);
-      y += 6;
-
-      doc.setFont("helvetica", "italic");
-      doc.setFontSize(10);
-      doc.text("Rogério Braga", pageW / 2, y, { align: "center" });
-
-      const safeName = sanitizeInput(name).replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_]/g, "");
-      doc.save(`Resultado_Tríade_do_Tempo_${safeName}.pdf`);
     }
 
-    function buildResultHtml(name, profession, age, email, totals, percentages, energyLeak, triadChartImg, idealChartImg) {
-      const prof = triadPickProfile(Number(percentages.A), Number(percentages.B), Number(percentages.C));
-      const dt = new Date().toLocaleString("pt-BR");
+    function addKeyValue(label, value) {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      const left = `${label}:`;
+      const leftW = doc.getTextWidth(left);
 
-      const triadImg = triadChartImg ? `<img src="${triadChartImg}" alt="Sua Tríade" style="width:100%;max-width:420px;border-radius:12px;display:block;margin:0 auto;">` : "";
-      const idealImg = idealChartImg ? `<img src="${idealChartImg}" alt="Tríade Ideal" style="width:100%;max-width:420px;border-radius:12px;display:block;margin:0 auto;">` : "";
+      newPageIfNeeded(5);
+      doc.text(margin, y, left);
 
-      return `<!doctype html>
+      doc.setFont("helvetica", "normal");
+      doc.text(margin + leftW + 2, y, String(value));
+      y += 5;
+    }
+
+    function addParagraph(text, fontSize = 10, lineH = 4.8) {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(fontSize);
+      const lines = doc.splitTextToSize(String(text), contentW);
+      lines.forEach(ln => {
+        newPageIfNeeded(lineH);
+        doc.text(margin, y, ln);
+        y += lineH;
+      });
+      y += 2;
+    }
+
+    function addImageContain(imgData, boxX, boxY, boxW, boxH) {
+      try {
+        const props = doc.getImageProperties(imgData);
+        const imgW = props.width || 1;
+        const imgH = props.height || 1;
+
+        const scale = Math.min(boxW / imgW, boxH / imgH);
+        const drawW = imgW * scale;
+        const drawH = imgH * scale;
+
+        const dx = boxX + (boxW - drawW) / 2;
+        const dy = boxY + (boxH - drawH) / 2;
+
+        doc.addImage(imgData, "PNG", dx, dy, drawW, drawH);
+      } catch(e) {}
+    }
+
+    addH1("ImpulsoCoaching");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(14);
+    doc.setTextColor(0, 64, 128);
+    doc.text("Teste da Tríade do Tempo", pageW / 2, y, { align: "center" });
+    doc.setTextColor(0, 0, 0);
+    y += 10;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(71, 85, 105);
+    doc.text(`Gerado em: ${new Date().toLocaleString("pt-BR")}`, pageW / 2, y, { align: "center" });
+    doc.setTextColor(0, 0, 0);
+    y += 10;
+
+    addH2("1) Dados do participante");
+    addKeyValue("Nome", sanitizeInput(name));
+    addKeyValue("Profissão", sanitizeInput(profession));
+    addKeyValue("Idade", sanitizeInput(String(age)));
+    addKeyValue("E-mail", sanitizeInput(email));
+    y += 3;
+
+    addH2("2) Distribuição (%)");
+    addKeyValue("Importância (B)", `${Number(percentages.B).toFixed(1)}%`);
+    addKeyValue("Urgência (C)", `${Number(percentages.C).toFixed(1)}%`);
+    addKeyValue("Circunstância (A)", `${Number(percentages.A).toFixed(1)}%`);
+    y += 3;
+
+    addH2("3) Pontuação");
+    addKeyValue("A/B/C", `${totals.A}/${totals.B}/${totals.C}`);
+    addKeyValue("Total Geral", totals.General);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(220, 38, 38);
+    newPageIfNeeded(6);
+    doc.text(margin, y, `Vazamento de Energia (A + C): ${energyLeak}`);
+    doc.setTextColor(0, 0, 0);
+    y += 8;
+
+    const prof = triadPickProfile(Number(percentages.A), Number(percentages.B), Number(percentages.C));
+    addH2("4) Perfil (pelo material)");
+    addParagraph(`${prof.nome}\n\n${prof.texto}`, 10, 4.8);
+
+    addH2("5) Gráficos");
+    const boxSize = 85;
+    const gap = 10;
+    const boxY = y + 3;
+    newPageIfNeeded(boxSize + 18);
+
+    doc.setDrawColor(207, 230, 255);
+    doc.roundedRect(margin, boxY, boxSize, boxSize, 3, 3, "S");
+    doc.roundedRect(margin + boxSize + gap, boxY, boxSize, boxSize, 3, 3, "S");
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.text("Sua Tríade", margin + boxSize / 2, boxY - 2, { align: "center" });
+    doc.text("Tríade Ideal", margin + boxSize + gap + boxSize / 2, boxY - 2, { align: "center" });
+
+    if (triadChartImg) addImageContain(triadChartImg, margin, boxY, boxSize, boxSize);
+    if (idealChartImg) addImageContain(idealChartImg, margin + boxSize + gap, boxY, boxSize, boxSize);
+
+    y = boxY + boxSize + 12;
+
+    addH2("6) Texto completo do material (referência do modelo)");
+    const materialLines = String(triadMaterialFullText()).replace(/\r\n/g, "\n").split("\n");
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+
+    materialLines.forEach(line => {
+      if (line.trim() === "") {
+        newPageIfNeeded(4.8);
+        y += 4.8;
+        return;
+      }
+      const wrapped = doc.splitTextToSize(line, contentW);
+      wrapped.forEach(wln => {
+        newPageIfNeeded(4.8);
+        doc.text(margin, y, wln);
+        y += 4.8;
+      });
+    });
+
+    newPageIfNeeded(14);
+    y += 5;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(71, 85, 105);
+    doc.text("Fonte: Instituto Impulso Coaching – www.impulsocoaching.com.br", pageW / 2, y, { align: "center" });
+    doc.setTextColor(0, 0, 0);
+    y += 6;
+
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(10);
+    doc.text("Rogério Braga", pageW / 2, y, { align: "center" });
+
+    const safeName = sanitizeInput(name).replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_]/g, "");
+    return { doc, safeName };
+  }
+
+  function generatePDF(name, profession, age, email, totals, percentages, energyLeak, triadChartImg, idealChartImg) {
+    const built = buildTriadePdfDoc_(name, profession, age, email, totals, percentages, energyLeak, triadChartImg, idealChartImg);
+    built.doc.save(`Resultado_Tríade_do_Tempo_${built.safeName}.pdf`);
+  }
+
+  function generatePDFDataUrl_(name, profession, age, email, totals, percentages, energyLeak, triadChartImg, idealChartImg) {
+    const built = buildTriadePdfDoc_(name, profession, age, email, totals, percentages, energyLeak, triadChartImg, idealChartImg);
+    return built.doc.output("datauristring");
+  }
+
+  function buildResultHtml(name, profession, age, email, totals, percentages, energyLeak, triadChartImg, idealChartImg) {
+    const prof = triadPickProfile(Number(percentages.A), Number(percentages.B), Number(percentages.C));
+    const dt = new Date().toLocaleString("pt-BR");
+
+    const triadImg = triadChartImg ? `<img src="${triadChartImg}" alt="Sua Tríade" style="width:100%;max-width:420px;border-radius:12px;display:block;margin:0 auto;">` : "";
+    const idealImg = idealChartImg ? `<img src="${idealChartImg}" alt="Tríade Ideal" style="width:100%;max-width:420px;border-radius:12px;display:block;margin:0 auto;">` : "";
+
+    return `<!doctype html>
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -1153,456 +1168,483 @@ small{color:#475569}
   </div>
 </body>
 </html>`;
-    }
-
-    function saveHtmlAuto(filename, htmlString) {
-      const blob = new Blob([htmlString], { type: "text/html;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
-
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      a.rel = "noopener";
-      a.style.display = "none";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-
-      setTimeout(() => {
-        try { window.open(url, "_blank", "noopener,noreferrer"); } catch(e) {}
-      }, 250);
-
-      setTimeout(() => {
-        try { URL.revokeObjectURL(url); } catch(e) {}
-      }, 60000);
-    }
-
-    const questions = [
-      "1. Costumo ir a eventos, festas ou cursos, mesmo sem ter muita vontade, para agradar meu chefe, amigos ou família.",
-      "2. Não consigo realizar tudo que me propus fazer no dia e preciso fazer hora extra e levar trabalho para casa.",
-      "3. Quando recebo uma nova notificação no WhatsApp, Instagram, e-mail, etc, costumo dar uma olhada para checar o conteúdo.",
-      "4. Costumo visitar com regularidade pessoas relevantes em minha vida como amigos, parentes e filhos.",
-      "5. É comum aparecer problemas inesperados no meu dia a dia.",
-      "6. Assumo compromissos com outras pessoas ou aceito novas funções na empresa, mesmo que não goste muito da nova atividade, se for para aumentar meus rendimentos ou obter uma promoção.",
-      "7. Tenho um tempo definido para dedicar a mim mesmo e nele, posso fazer o que quiser.",
-      "8. Costumo deixar para fazer relatórios, imposto de renda, compras de Natal, estudar para provas e outras tarefas perto do prazo de entrega.",
-      "9. Nos dias de descanso, costumo passar boa parte do dia assistindo à televisão, jogando ou rolando o feed de redes sociais, internet e apps como WhatsApp.",
-      "10. Faço um planejamento por escrito de tudo que preciso fazer durante minha semana.",
-      "11. Posso afirmar que estou conseguindo realizar tudo que gostaria em minha vida e que o tempo está passando na velocidade correta.",
-      "12. Costumo participar de reuniões sem saber direito o conteúdo, o porquê devo participar ou a que resultado aquele encontro pode levar.",
-      "13. Consigo melhores resultados e me sinto mais produtivo quando estou sob pressão ou com o prazo curto.",
-      "14. Quando quero alguma coisa, deixo esse objetivo por escrito, estabeleço prazos em minha agenda, monitoro os resultados obtidos e os comparo com os esperados.",
-      "15. Leio muitas mensagens desnecessárias no WhatsApp, Instagram, e-mails, etc., com piadas, correntes, propagandas, apresentações, produtos e etc.",
-      "16. Estive atrasado com minhas tarefas ou reuniões nas últimas semanas.",
-      "17. Faço esporte com regularidade, me alimento da forma adequada e tenho o lazer que gostaria.",
-      "18. É comum reduzir meu horário de almoço ou até mesmo comer enquanto trabalho para concluir um projeto ou tarefa."
-    ];
-
-    const optLabels = [
-      { v: 1, t: "1. Nunca" },
-      { v: 2, t: "2. Raramente" },
-      { v: 3, t: "3. Às vezes" },
-      { v: 4, t: "4. Quase sempre" },
-      { v: 5, t: "5. Sempre" }
-    ];
-
-    const circumstance = [1, 6, 9, 12, 15];
-    const importance   = [4, 7, 10, 11, 14, 17];
-    const urgency      = [2, 3, 5, 8, 13, 16, 18];
-
-    let currentIndex = 0;
-    const answers = new Array(18).fill(null);
-    let charts = { user: null, ideal: null };
-    let lastAutoKey = "";
-
-    const stepIntro = document.getElementById("step-intro");
-    const stepQuiz = document.getElementById("step-quiz");
-    const stepResults = document.getElementById("step-results");
-
-    const elName = document.getElementById("name");
-    const elProfession = document.getElementById("profession");
-    const elAge = document.getElementById("age");
-    const elEmail = document.getElementById("email");
-
-    const elNameErr = document.getElementById("name-error");
-    const elProfErr = document.getElementById("profession-error");
-    const elAgeErr = document.getElementById("age-error");
-    const elEmailErr = document.getElementById("email-error");
-
-    const btnStart = document.getElementById("btn-start");
-    const btnPrev = document.getElementById("btn-prev");
-    const btnNext = document.getElementById("btn-next");
-    const btnBackQuiz = document.getElementById("btn-back-quiz");
-
-    const elQCurrent = document.getElementById("q-current");
-    const elAnsweredCount = document.getElementById("answered-count");
-    const elProgressFill = document.getElementById("progress-fill");
-
-    const elQuestionText = document.getElementById("question-text");
-    const elOptions = document.getElementById("options");
-
-    function showStep(step){
-      [stepIntro, stepQuiz, stepResults].forEach(s => s.classList.remove("active"));
-      step.classList.add("active");
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-
-    function validateIntro(){
-      const name = elName.value.trim();
-      const prof = elProfession.value.trim();
-      const age = elAge.value.trim();
-      const email = elEmail.value.trim();
-
-      const okName = !!name;
-      const okProf = !!prof;
-      const okAge = isValidAge(age);
-      const okEmail = validateEmail(email);
-
-      elNameErr.style.display = okName ? "none" : "block";
-      elProfErr.style.display = okProf ? "none" : "block";
-      elAgeErr.style.display = okAge ? "none" : "block";
-      elEmailErr.style.display = okEmail ? "none" : "block";
-
-      return okName && okProf && okAge && okEmail;
-    }
-
-    elName.addEventListener("input", validateIntro);
-    elProfession.addEventListener("input", validateIntro);
-    elAge.addEventListener("input", validateIntro);
-    elEmail.addEventListener("input", validateIntro);
-
-    btnStart.addEventListener("click", () => {
-      if(!validateIntro()) return;
-      showStep(stepQuiz);
-      renderQuestion();
-      updateProgressUI();
-    });
-
-    function renderQuestion(){
-      elQCurrent.textContent = String(currentIndex + 1);
-      elQuestionText.textContent = questions[currentIndex];
-
-      elOptions.innerHTML = "";
-      const selected = answers[currentIndex];
-
-      optLabels.forEach((opt) => {
-        const div = document.createElement("div");
-        div.className = "opt";
-        div.setAttribute("role", "radio");
-        div.setAttribute("tabindex", "0");
-        div.setAttribute("aria-checked", selected === opt.v ? "true" : "false");
-        div.dataset.value = String(opt.v);
-        div.textContent = opt.t;
-
-        div.addEventListener("click", () => selectOption(opt.v));
-        div.addEventListener("keydown", (e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            selectOption(opt.v);
-          }
-        });
-
-        elOptions.appendChild(div);
-      });
-
-      btnPrev.disabled = currentIndex === 0;
-      btnNext.textContent = (currentIndex === 17) ? "Ver Resultado" : "Próxima";
-    }
-
-    function selectOption(value){
-      answers[currentIndex] = value;
-      [...elOptions.children].forEach((child) => {
-        child.setAttribute("aria-checked", child.dataset.value === String(value) ? "true" : "false");
-      });
-      updateProgressUI();
-    }
-
-    function updateProgressUI(){
-      const answered = answers.filter(v => v !== null).length;
-      elAnsweredCount.textContent = String(answered);
-      const percent = Math.round((answered / 18) * 100);
-      elProgressFill.style.width = `${percent}%`;
-    }
-
-    btnPrev.addEventListener("click", () => {
-      if(currentIndex > 0){
-        currentIndex--;
-        renderQuestion();
-        updateProgressUI();
-      }
-    });
-
-    btnNext.addEventListener("click", async () => {
-      if(answers[currentIndex] === null){
-        alert("Selecione uma opção para continuar.");
-        return;
-      }
-
-      if(currentIndex < 17){
-        currentIndex++;
-        renderQuestion();
-        updateProgressUI();
-        return;
-      }
-
-      const payload = showResults();
-      if (!payload) return;
-
-      await finalizeAutoFlow(payload);
-    });
-
-    function computeTotals(){
-      let totals = { A: 0, B: 0, C: 0, General: 0 };
-
-      for(let i=1; i<=18; i++){
-        const value = Number(answers[i-1]);
-        if (circumstance.includes(i)) totals.A += value;
-        else if (importance.includes(i)) totals.B += value;
-        else if (urgency.includes(i)) totals.C += value;
-      }
-      totals.General = totals.A + totals.B + totals.C;
-      return totals;
-    }
-
-    function computePercentages(totals){
-      const A = totals.General ? ((totals.A / totals.General) * 100) : 0;
-      const B = totals.General ? ((totals.B / totals.General) * 100) : 0;
-      const C = totals.General ? ((totals.C / totals.General) * 100) : 0;
-
-      return {
-        A: Number(A.toFixed(1)),
-        B: Number(B.toFixed(1)),
-        C: Number(C.toFixed(1))
-      };
-    }
-
-    function ensureChartsRegistered(){
-      if (!window.Chart) return;
-      if (window.ChartDataLabels) {
-        if (!ensureChartsRegistered._done) {
-          Chart.register(window.ChartDataLabels);
-          ensureChartsRegistered._done = true;
-        }
-      }
-    }
-
-    function destroyCharts(){
-      try{
-        if (charts.user) { charts.user.destroy(); charts.user = null; }
-        if (charts.ideal) { charts.ideal.destroy(); charts.ideal = null; }
-      } catch(e){}
-    }
-
-    function renderCharts(percentages){
-      if (!window.Chart) return;
-
-      ensureChartsRegistered();
-      destroyCharts();
-
-      const pA = Number(percentages.A);
-      const pB = Number(percentages.B);
-      const pC = Number(percentages.C);
-
-      const commonOptions = (titleText) => ({
-        responsive: true,
-        maintainAspectRatio: true,
-        aspectRatio: 1,
-        animation: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: { enabled: true },
-          datalabels: {
-            formatter: (value) => `${Number(value).toFixed(1)}%`,
-            color: (context) => context.dataset.backgroundColor[context.dataIndex] === "#FFD700" ? "#000000" : "#FFFFFF",
-            font: { size: 22, weight: "bold" },
-            anchor: "center",
-            align: "center"
-          },
-          title: {
-            display: true,
-            text: titleText,
-            font: { size: 16, weight: "bold" },
-            color: "#0b63ce",
-            padding: { top: 10, bottom: 10 }
-          }
-        }
-      });
-
-      const userCtx = document.getElementById("triadChart").getContext("2d");
-      charts.user = new Chart(userCtx, {
-        type: "pie",
-        data: {
-          labels: ["Circunstância", "Importância", "Urgência"],
-          datasets: [{
-            data: [pA, pB, pC],
-            backgroundColor: ["#FFD700", "#0000FF", "#FF0000"],
-            borderColor: ["#FFD700", "#0000FF", "#FF0000"],
-            borderWidth: 1
-          }]
-        },
-        options: commonOptions("Sua Tríade")
-      });
-
-      const idealCtx = document.getElementById("idealTriadChart").getContext("2d");
-      charts.ideal = new Chart(idealCtx, {
-        type: "pie",
-        data: {
-          labels: ["Circunstância", "Importância", "Urgência"],
-          datasets: [{
-            data: [10, 70, 20],
-            backgroundColor: ["#FFD700", "#0000FF", "#FF0000"],
-            borderColor: ["#FFD700", "#0000FF", "#FF0000"],
-            borderWidth: 1
-          }]
-        },
-        options: commonOptions("Tríade Ideal")
-      });
-    }
-
-    function showResults(){
-      const answered = answers.filter(v => v !== null).length;
-      if (answered !== 18){
-        alert("Responda todas as 18 perguntas antes de ver o resultado.");
-        return null;
-      }
-
-      const name = elName.value.trim();
-      const profession = elProfession.value.trim();
-      const age = elAge.value.trim();
-      const email = elEmail.value.trim();
-
-      if (!validateIntro()) return null;
-
-      const totals = computeTotals();
-      const percentages = computePercentages(totals);
-      const energyLeak = (totals.A + totals.C).toFixed(1);
-
-      document.getElementById("result-title").textContent = `${sanitizeInput(name)} (${sanitizeInput(profession)}) - Sua Tríade do Tempo`;
-
-      document.getElementById("percentA").textContent = `${percentages.A}%`;
-      document.getElementById("percentB").textContent = `${percentages.B}%`;
-      document.getElementById("percentC").textContent = `${percentages.C}%`;
-
-      document.getElementById("barA").style.width = `${percentages.A}%`;
-      document.getElementById("barB").style.width = `${percentages.B}%`;
-      document.getElementById("barC").style.width = `${percentages.C}%`;
-
-      document.getElementById("totalA").textContent = totals.A;
-      document.getElementById("totalB").textContent = totals.B;
-      document.getElementById("totalC").textContent = totals.C;
-      document.getElementById("totalGeneral").textContent = totals.General;
-      document.getElementById("energyLeak").textContent = energyLeak;
-
-      const prof = triadPickProfile(percentages.A, percentages.B, percentages.C);
-      document.getElementById("profile-name").textContent = `Perfil (pelo material): ${prof.nome}`;
-      document.getElementById("profile-desc").textContent = prof.texto;
-
-      renderCharts(percentages);
-      showStep(stepResults);
-
-      const prettyData = { nome: name, profissao: profession, idade: age, email: email };
-      return { prettyData, totals, percentages, energyLeak };
-    }
-
-    btnBackQuiz.addEventListener("click", () => {
-      showStep(stepQuiz);
-      renderQuestion();
-      updateProgressUI();
-    });
-
-    async function finalizeAutoFlow(payload){
-      const { prettyData, totals, percentages, energyLeak } = payload;
-
-      const autoKey = [
-        prettyData.nome, prettyData.profissao, prettyData.idade, prettyData.email,
-        totals.A, totals.B, totals.C, totals.General,
-        percentages.A, percentages.B, percentages.C, energyLeak
-      ].join("|");
-
-      if (autoKey === lastAutoKey) return;
-      lastAutoKey = autoKey;
-
-      const rt = document.getElementById("result-text");
-      if (rt) rt.textContent = "Salvando PDF e HTML automaticamente e abrindo o e-mail…";
-
-      const mailtoHref = buildMailtoHref(prettyData, totals, percentages, energyLeak);
-      ensureMailtoFallbackLink(mailtoHref);
-
-      impulsoSendResult({
-        testId: "triade_do_tempo_v1",
-        nome: prettyData.nome,
-        profissao: prettyData.profissao,
-        idade: prettyData.idade,
-        email: prettyData.email,
-        percentualA: percentages.A,
-        percentualB: percentages.B,
-        percentualC: percentages.C,
-        totalA: totals.A,
-        totalB: totals.B,
-        totalC: totals.C,
-        totalGeral: totals.General,
-        vazamento: energyLeak
-      });
-
-      await new Promise(requestAnimationFrame);
-      await sleep(120);
-
-      let triadChartImg = null;
-      let idealChartImg = null;
-
-      try {
-        triadChartImg = charts.user ? charts.user.toBase64Image() : document.getElementById("triadChart").toDataURL("image/png");
-        idealChartImg = charts.ideal ? charts.ideal.toBase64Image() : document.getElementById("idealTriadChart").toDataURL("image/png");
-      } catch(e) {
-        triadChartImg = null;
-        idealChartImg = null;
-      }
-
-      try{
-        generatePDF(
-          prettyData.nome,
-          prettyData.profissao,
-          prettyData.idade,
-          prettyData.email,
-          totals,
-          percentages,
-          energyLeak,
-          triadChartImg,
-          idealChartImg
-        );
-      }catch(e){
-        if (rt) rt.textContent = "Resultados exibidos, mas houve erro ao gerar o PDF. Use o link abaixo para abrir e-mail.";
-        return;
-      }
-
-      try{
-        const safeName = sanitizeInput(prettyData.nome).replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_]/g, "");
-        const html = buildResultHtml(
-          prettyData.nome,
-          prettyData.profissao,
-          prettyData.idade,
-          prettyData.email,
-          totals,
-          percentages,
-          energyLeak,
-          triadChartImg,
-          idealChartImg
-        );
-        saveHtmlAuto(`Resultado_Tríade_do_Tempo_${safeName}.html`, html);
-      }catch(e){
-        // não bloqueia o fluxo
-      }
-
-      try{
-        forceOpenMailtoUniversal(mailtoHref);
-        if (rt) rt.textContent = "PDF e HTML salvos. Tentamos abrir seu e-mail. Se não abriu, use o link abaixo.";
-      }catch(e){
-        if (rt) rt.textContent = "PDF e HTML salvos. Use o link abaixo para abrir o e-mail e enviar.";
-      }
-    }
-
+  }
+
+  function saveHtmlAuto(filename, htmlString) {
+    const blob = new Blob([htmlString], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.rel = "noopener";
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    setTimeout(() => {
+      try { window.open(url, "_blank", "noopener,noreferrer"); } catch(e) {}
+    }, 250);
+
+    setTimeout(() => {
+      try { URL.revokeObjectURL(url); } catch(e) {}
+    }, 60000);
+  }
+
+  const questions = [
+    "1. Costumo ir a eventos, festas ou cursos, mesmo sem ter muita vontade, para agradar meu chefe, amigos ou família.",
+    "2. Não consigo realizar tudo que me propus fazer no dia e preciso fazer hora extra e levar trabalho para casa.",
+    "3. Quando recebo uma nova notificação no WhatsApp, Instagram, e-mail, etc, costumo dar uma olhada para checar o conteúdo.",
+    "4. Costumo visitar com regularidade pessoas relevantes em minha vida como amigos, parentes e filhos.",
+    "5. É comum aparecer problemas inesperados no meu dia a dia.",
+    "6. Assumo compromissos com outras pessoas ou aceito novas funções na empresa, mesmo que não goste muito da nova atividade, se for para aumentar meus rendimentos ou obter uma promoção.",
+    "7. Tenho um tempo definido para dedicar a mim mesmo e nele, posso fazer o que quiser.",
+    "8. Costumo deixar para fazer relatórios, imposto de renda, compras de Natal, estudar para provas e outras tarefas perto do prazo de entrega.",
+    "9. Nos dias de descanso, costumo passar boa parte do dia assistindo à televisão, jogando ou rolando o feed de redes sociais, internet e apps como WhatsApp.",
+    "10. Faço um planejamento por escrito de tudo que preciso fazer durante minha semana.",
+    "11. Posso afirmar que estou conseguindo realizar tudo que gostaria em minha vida e que o tempo está passando na velocidade correta.",
+    "12. Costumo participar de reuniões sem saber direito o conteúdo, o porquê devo participar ou a que resultado aquele encontro pode levar.",
+    "13. Consigo melhores resultados e me sinto mais produtivo quando estou sob pressão ou com o prazo curto.",
+    "14. Quando quero alguma coisa, deixo esse objetivo por escrito, estabeleço prazos em minha agenda, monitoro os resultados obtidos e os comparo com os esperados.",
+    "15. Leio muitas mensagens desnecessárias no WhatsApp, Instagram, e-mails, etc., com piadas, correntes, propagandas, apresentações, produtos e etc.",
+    "16. Estive atrasado com minhas tarefas ou reuniões nas últimas semanas.",
+    "17. Faço esporte com regularidade, me alimento da forma adequada e tenho o lazer que gostaria.",
+    "18. É comum reduzir meu horário de almoço ou até mesmo comer enquanto trabalho para concluir um projeto ou tarefa."
+  ];
+
+  const optLabels = [
+    { v: 1, t: "1. Nunca" },
+    { v: 2, t: "2. Raramente" },
+    { v: 3, t: "3. Às vezes" },
+    { v: 4, t: "4. Quase sempre" },
+    { v: 5, t: "5. Sempre" }
+  ];
+
+  const circumstance = [1, 6, 9, 12, 15];
+  const importance   = [4, 7, 10, 11, 14, 17];
+  const urgency      = [2, 3, 5, 8, 13, 16, 18];
+
+  let currentIndex = 0;
+  const answers = new Array(18).fill(null);
+  let charts = { user: null, ideal: null };
+  let lastAutoKey = "";
+
+  const stepIntro = document.getElementById("step-intro");
+  const stepQuiz = document.getElementById("step-quiz");
+  const stepResults = document.getElementById("step-results");
+
+  const elName = document.getElementById("name");
+  const elProfession = document.getElementById("profession");
+  const elAge = document.getElementById("age");
+  const elEmail = document.getElementById("email");
+
+  const elNameErr = document.getElementById("name-error");
+  const elProfErr = document.getElementById("profession-error");
+  const elAgeErr = document.getElementById("age-error");
+  const elEmailErr = document.getElementById("email-error");
+
+  const btnStart = document.getElementById("btn-start");
+  const btnPrev = document.getElementById("btn-prev");
+  const btnNext = document.getElementById("btn-next");
+  const btnBackQuiz = document.getElementById("btn-back-quiz");
+
+  const elQCurrent = document.getElementById("q-current");
+  const elAnsweredCount = document.getElementById("answered-count");
+  const elProgressFill = document.getElementById("progress-fill");
+
+  const elQuestionText = document.getElementById("question-text");
+  const elOptions = document.getElementById("options");
+
+  function showStep(step){
+    [stepIntro, stepQuiz, stepResults].forEach(s => s.classList.remove("active"));
+    step.classList.add("active");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function validateIntro(){
+    const name = elName.value.trim();
+    const prof = elProfession.value.trim();
+    const age = elAge.value.trim();
+    const email = elEmail.value.trim();
+
+    const okName = !!name;
+    const okProf = !!prof;
+    const okAge = isValidAge(age);
+    const okEmail = validateEmail(email);
+
+    elNameErr.style.display = okName ? "none" : "block";
+    elProfErr.style.display = okProf ? "none" : "block";
+    elAgeErr.style.display = okAge ? "none" : "block";
+    elEmailErr.style.display = okEmail ? "none" : "block";
+
+    return okName && okProf && okAge && okEmail;
+  }
+
+  elName.addEventListener("input", validateIntro);
+  elProfession.addEventListener("input", validateIntro);
+  elAge.addEventListener("input", validateIntro);
+  elEmail.addEventListener("input", validateIntro);
+
+  btnStart.addEventListener("click", () => {
+    if(!validateIntro()) return;
+    showStep(stepQuiz);
     renderQuestion();
     updateProgressUI();
-  </script>
+  });
+
+  function renderQuestion(){
+    elQCurrent.textContent = String(currentIndex + 1);
+    elQuestionText.textContent = questions[currentIndex];
+
+    elOptions.innerHTML = "";
+    const selected = answers[currentIndex];
+
+    optLabels.forEach((opt) => {
+      const div = document.createElement("div");
+      div.className = "opt";
+      div.setAttribute("role", "radio");
+      div.setAttribute("tabindex", "0");
+      div.setAttribute("aria-checked", selected === opt.v ? "true" : "false");
+      div.dataset.value = String(opt.v);
+      div.textContent = opt.t;
+
+      div.addEventListener("click", () => selectOption(opt.v));
+      div.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          selectOption(opt.v);
+        }
+      });
+
+      elOptions.appendChild(div);
+    });
+
+    btnPrev.disabled = currentIndex === 0;
+    btnNext.textContent = (currentIndex === 17) ? "Ver Resultado" : "Próxima";
+  }
+
+  function selectOption(value){
+    answers[currentIndex] = value;
+    [...elOptions.children].forEach((child) => {
+      child.setAttribute("aria-checked", child.dataset.value === String(value) ? "true" : "false");
+    });
+    updateProgressUI();
+  }
+
+  function updateProgressUI(){
+    const answered = answers.filter(v => v !== null).length;
+    elAnsweredCount.textContent = String(answered);
+    const percent = Math.round((answered / 18) * 100);
+    elProgressFill.style.width = `${percent}%`;
+  }
+
+  btnPrev.addEventListener("click", () => {
+    if(currentIndex > 0){
+      currentIndex--;
+      renderQuestion();
+      updateProgressUI();
+    }
+  });
+
+  btnNext.addEventListener("click", async () => {
+    if(answers[currentIndex] === null){
+      alert("Selecione uma opção para continuar.");
+      return;
+    }
+
+    if(currentIndex < 17){
+      currentIndex++;
+      renderQuestion();
+      updateProgressUI();
+      return;
+    }
+
+    const payload = showResults();
+    if (!payload) return;
+
+    await finalizeAutoFlow(payload);
+  });
+
+  function computeTotals(){
+    let totals = { A: 0, B: 0, C: 0, General: 0 };
+
+    for(let i=1; i<=18; i++){
+      const value = Number(answers[i-1]);
+      if (circumstance.includes(i)) totals.A += value;
+      else if (importance.includes(i)) totals.B += value;
+      else if (urgency.includes(i)) totals.C += value;
+    }
+    totals.General = totals.A + totals.B + totals.C;
+    return totals;
+  }
+
+  function computePercentages(totals){
+    const A = totals.General ? ((totals.A / totals.General) * 100) : 0;
+    const B = totals.General ? ((totals.B / totals.General) * 100) : 0;
+    const C = totals.General ? ((totals.C / totals.General) * 100) : 0;
+
+    return {
+      A: Number(A.toFixed(1)),
+      B: Number(B.toFixed(1)),
+      C: Number(C.toFixed(1))
+    };
+  }
+
+  function ensureChartsRegistered(){
+    if (!window.Chart) return;
+    if (window.ChartDataLabels) {
+      if (!ensureChartsRegistered._done) {
+        Chart.register(window.ChartDataLabels);
+        ensureChartsRegistered._done = true;
+      }
+    }
+  }
+
+  function destroyCharts(){
+    try{
+      if (charts.user) { charts.user.destroy(); charts.user = null; }
+      if (charts.ideal) { charts.ideal.destroy(); charts.ideal = null; }
+    } catch(e){}
+  }
+
+  function renderCharts(percentages){
+    if (!window.Chart) return;
+
+    ensureChartsRegistered();
+    destroyCharts();
+
+    const pA = Number(percentages.A);
+    const pB = Number(percentages.B);
+    const pC = Number(percentages.C);
+
+    const commonOptions = (titleText) => ({
+      responsive: true,
+      maintainAspectRatio: true,
+      aspectRatio: 1,
+      animation: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { enabled: true },
+        datalabels: {
+          formatter: (value) => `${Number(value).toFixed(1)}%`,
+          color: (context) => context.dataset.backgroundColor[context.dataIndex] === "#FFD700" ? "#000000" : "#FFFFFF",
+          font: { size: 22, weight: "bold" },
+          anchor: "center",
+          align: "center"
+        },
+        title: {
+          display: true,
+          text: titleText,
+          font: { size: 16, weight: "bold" },
+          color: "#0b63ce",
+          padding: { top: 10, bottom: 10 }
+        }
+      }
+    });
+
+    const userCtx = document.getElementById("triadChart").getContext("2d");
+    charts.user = new Chart(userCtx, {
+      type: "pie",
+      data: {
+        labels: ["Circunstância", "Importância", "Urgência"],
+        datasets: [{
+          data: [pA, pB, pC],
+          backgroundColor: ["#FFD700", "#0000FF", "#FF0000"],
+          borderColor: ["#FFD700", "#0000FF", "#FF0000"],
+          borderWidth: 1
+        }]
+      },
+      options: commonOptions("Sua Tríade")
+    });
+
+    const idealCtx = document.getElementById("idealTriadChart").getContext("2d");
+    charts.ideal = new Chart(idealCtx, {
+      type: "pie",
+      data: {
+        labels: ["Circunstância", "Importância", "Urgência"],
+        datasets: [{
+          data: [10, 70, 20],
+          backgroundColor: ["#FFD700", "#0000FF", "#FF0000"],
+          borderColor: ["#FFD700", "#0000FF", "#FF0000"],
+          borderWidth: 1
+        }]
+      },
+      options: commonOptions("Tríade Ideal")
+    });
+  }
+
+  function showResults(){
+    const answered = answers.filter(v => v !== null).length;
+    if (answered !== 18){
+      alert("Responda todas as 18 perguntas antes de ver o resultado.");
+      return null;
+    }
+
+    const name = elName.value.trim();
+    const profession = elProfession.value.trim();
+    const age = elAge.value.trim();
+    const email = elEmail.value.trim();
+
+    if (!validateIntro()) return null;
+
+    const totals = computeTotals();
+    const percentages = computePercentages(totals);
+    const energyLeak = (totals.A + totals.C).toFixed(1);
+
+    document.getElementById("result-title").textContent = `${sanitizeInput(name)} (${sanitizeInput(profession)}) - Sua Tríade do Tempo`;
+
+    document.getElementById("percentA").textContent = `${percentages.A}%`;
+    document.getElementById("percentB").textContent = `${percentages.B}%`;
+    document.getElementById("percentC").textContent = `${percentages.C}%`;
+
+    document.getElementById("barA").style.width = `${percentages.A}%`;
+    document.getElementById("barB").style.width = `${percentages.B}%`;
+    document.getElementById("barC").style.width = `${percentages.C}%`;
+
+    document.getElementById("totalA").textContent = totals.A;
+    document.getElementById("totalB").textContent = totals.B;
+    document.getElementById("totalC").textContent = totals.C;
+    document.getElementById("totalGeneral").textContent = totals.General;
+    document.getElementById("energyLeak").textContent = energyLeak;
+
+    const prof = triadPickProfile(percentages.A, percentages.B, percentages.C);
+    document.getElementById("profile-name").textContent = `Perfil (pelo material): ${prof.nome}`;
+    document.getElementById("profile-desc").textContent = prof.texto;
+
+    renderCharts(percentages);
+    showStep(stepResults);
+
+    const prettyData = { nome: name, profissao: profession, idade: age, email: email };
+    return { prettyData, totals, percentages, energyLeak };
+  }
+
+  btnBackQuiz.addEventListener("click", () => {
+    showStep(stepQuiz);
+    renderQuestion();
+    updateProgressUI();
+  });
+
+  async function finalizeAutoFlow(payload){
+    const { prettyData, totals, percentages, energyLeak } = payload;
+
+    const autoKey = [
+      prettyData.nome, prettyData.profissao, prettyData.idade, prettyData.email,
+      totals.A, totals.B, totals.C, totals.General,
+      percentages.A, percentages.B, percentages.C, energyLeak
+    ].join("|");
+
+    if (autoKey === lastAutoKey) return;
+    lastAutoKey = autoKey;
+
+    const rt = document.getElementById("result-text");
+    if (rt) rt.textContent = "Salvando PDF e HTML automaticamente e abrindo o e-mail…";
+
+    const mailtoHref = buildMailtoHref(prettyData, totals, percentages, energyLeak);
+    ensureMailtoFallbackLink(mailtoHref);
+
+    await new Promise(requestAnimationFrame);
+    await sleep(120);
+
+    let triadChartImg = null;
+    let idealChartImg = null;
+
+    try {
+      triadChartImg = charts.user ? charts.user.toBase64Image() : document.getElementById("triadChart").toDataURL("image/png");
+      idealChartImg = charts.ideal ? charts.ideal.toBase64Image() : document.getElementById("idealTriadChart").toDataURL("image/png");
+    } catch(e) {
+      triadChartImg = null;
+      idealChartImg = null;
+    }
+
+    // NOVO: PDF base64 + envio para Apps Script (com anexo)
+    let pdfBase64 = "";
+    let pdfFileName = "";
+
+    try{
+      const safeName = sanitizeInput(prettyData.nome).replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_]/g, "");
+      pdfFileName = `Resultado_Tríade_do_Tempo_${safeName}.pdf`;
+
+      const pdfDataUrl = generatePDFDataUrl_(
+        prettyData.nome,
+        prettyData.profissao,
+        prettyData.idade,
+        prettyData.email,
+        totals,
+        percentages,
+        energyLeak,
+        triadChartImg,
+        idealChartImg
+      );
+
+      pdfBase64 = pdfDataUrlToBase64_(pdfDataUrl);
+    }catch(e){
+      pdfBase64 = "";
+      pdfFileName = "";
+    }
+
+    impulsoSendResult({
+      testId: "triade_do_tempo_v1",
+      nome: prettyData.nome,
+      profissao: prettyData.profissao,
+      idade: prettyData.idade,
+      email: prettyData.email,
+      percentualA: percentages.A,
+      percentualB: percentages.B,
+      percentualC: percentages.C,
+      totalA: totals.A,
+      totalB: totals.B,
+      totalC: totals.C,
+      totalGeral: totals.General,
+      vazamento: energyLeak,
+      pdfBase64: pdfBase64,
+      pdfFileName: pdfFileName
+    });
+
+    // Mantém seu comportamento local (salvar PDF e HTML)
+    try{
+      generatePDF(
+        prettyData.nome,
+        prettyData.profissao,
+        prettyData.idade,
+        prettyData.email,
+        totals,
+        percentages,
+        energyLeak,
+        triadChartImg,
+        idealChartImg
+      );
+    }catch(e){
+      if (rt) rt.textContent = "Resultados exibidos, mas houve erro ao gerar o PDF. Use o link abaixo para abrir e-mail.";
+      return;
+    }
+
+    try{
+      const safeName = sanitizeInput(prettyData.nome).replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_]/g, "");
+      const html = buildResultHtml(
+        prettyData.nome,
+        prettyData.profissao,
+        prettyData.idade,
+        prettyData.email,
+        totals,
+        percentages,
+        energyLeak,
+        triadChartImg,
+        idealChartImg
+      );
+      saveHtmlAuto(`Resultado_Tríade_do_Tempo_${safeName}.html`, html);
+    }catch(e){}
+
+    try{
+      forceOpenMailtoUniversal(mailtoHref);
+      if (rt) rt.textContent = "PDF e HTML salvos. Tentamos abrir seu e-mail. Se não abriu, use o link abaixo.";
+    }catch(e){
+      if (rt) rt.textContent = "PDF e HTML salvos. Use o link abaixo para abrir o e-mail e enviar.";
+    }
+  }
+
+  renderQuestion();
+  updateProgressUI();
+</script>
 </body>
 </html>
