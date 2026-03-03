@@ -1003,7 +1003,7 @@
   const questions = [
     "1. Costumo ir a eventos, festas ou cursos, mesmo sem ter muita vontade, para agradar meu chefe, amigos ou família.",
     "2. Não consigo realizar tudo que me propus fazer no dia e preciso fazer hora extra e levar trabalho para casa.",
-    "3. Quando recebo uma nova notificação no WhatsApp, Instagram, e-mail, etc, costumo dar uma olhada para checar o conteúdo.",
+    "3. Quando receive uma nova notificação no WhatsApp, Instagram, e-mail, etc, costumo dar uma olhada para checar o conteúdo.",
     "4. Costumo visitar com regularidade pessoas relevantes em minha vida como amigos, parentes e filhos.",
     "5. É comum aparecer problemas inesperados no meu dia a dia.",
     "6. Assumo compromissos com outras pessoas ou aceito novas funções na empresa, mesmo que não goste muito da nova atividade, se for para aumentar meus rendimentos ou obter uma promoção.",
@@ -1204,6 +1204,7 @@
     const pC = Number(percentages.C);
 
     const commonOptions = (titleText) => ({
+      devicePixelRatio: 4, // 🚀 SEGREDO DA ALTA RESOLUÇÃO AQUI (4x mais pixels)
       responsive: true,
       maintainAspectRatio: true,
       aspectRatio: 1,
@@ -1214,7 +1215,7 @@
         datalabels: {
           formatter: (value) => `${Number(value).toFixed(1)}%`,
           color: (context) => context.dataset.backgroundColor[context.dataIndex] === "#FFD700" ? "#000000" : "#FFFFFF",
-          font: { size: 11, weight: "bold" }, /* FONTE REDUZIDA AQUI DE 22 PARA 11 */
+          font: { size: 11, weight: "bold" }, // ✅ FONTE DOS NÚMEROS AJUSTADA PARA 11
           anchor: "center",
           align: "center"
         },
@@ -1323,7 +1324,7 @@
     // Armazena os dados para o envio automático
     window._triadeData = payload;
 
-    // Aguarda 1 segundo para garantir a renderização dos gráficos na tela antes de gerar o PDF
+    // Aguarda 1 segundo para garantir a renderização dos gráficos na tela em HD antes de gerar o PDF
     setTimeout(() => {
         autoSendWithPdf();
     }, 1000);
