@@ -549,6 +549,16 @@
               <p style="margin:0; font-size:18px; font-weight:800; color:#065f46;">✅ Resultados processados automaticamente!</p>
               <p style="margin:6px 0 0; font-size:14px; color:#047857;">Seu relatório completo foi enviado para seu e-mail e para nossa equipe.<br>Verifique sua caixa de entrada (e spam, se necessário).</p>
           </div>
+
+          <!-- BOTÕES DE AÇÃO MANUAIS -->
+          <div style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 18px;">
+            <button onclick="downloadPDF()" type="button" class="btn" style="background: linear-gradient(135deg, #ec4899, #be185d); color: white;">
+              📄 Baixar PDF
+            </button>
+            <button onclick="sendEmailManual()" type="button" id="btn-manual-email" class="btn" style="background: linear-gradient(135deg, #10b981, #059669); color: white;">
+              📧 Reenviar E-mail
+            </button>
+          </div>
         </div>
 
         <div class="result-grid">
@@ -967,9 +977,7 @@
         email: data.prettyData.email,
         idade: data.prettyData.idade,
         profissao: data.prettyData.profissao,
-        
         resumo: resumoTriade,
-        
         pdfBase64: base64,
         pdfFileName: pdfFileName,
         sendEmail: true
@@ -1000,7 +1008,78 @@
   }
 
   // ========================================
-  // 🏁 INÍCIO E NAVEGAÇÃO
+  // 🖨️ AÇÕES MANUAIS (PDF e EMAIL)
+  // ========================================
+  async function downloadPDF() {
+    const data = window._triadeData;
+    if (!data) {
+      alert('Gere os resultados primeiro.');
+      return;
+    }
+    try {
+      const { doc, pdfFileName } = await generatePdfDocAndFileName();
+      doc.save(pdfFileName);
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error);
+      alert('Erro ao gerar o PDF. Tente novamente.');
+    }
+  }
+
+  async function sendEmailManual() {
+    const data = window._triadeData;
+    if (!data) {
+      alert('Gere os resultados primeiro.');
+      return;
+    }
+
+    const btn = document.getElementById("btn-manual-email");
+    if(btn) btn.disabled = true;
+
+    setAutoSendStatus("📧 Enviando por e-mail...", "pending");
+    try {
+      const { doc, pdfFileName } = await generatePdfDocAndFileName();
+      const base64 = doc.output("datauristring").split(",")[1];
+
+      const prof = triadPickProfile(data.percentages.A, data.percentages.B, data.percentages.C);
+      const resumoTriade =
+        `A/B/C: ${data.totals.A}/${data.totals.B}/${data.totals.C}\n` +
+        `Importância (B): ${data.percentages.B}%\n` +
+        `Urgência (C): ${data.percentages.C}%\n` +
+        `Circunstância (A): ${data.percentages.A}%\n\n` +
+        `Total Geral: ${data.totals.General}\n` +
+        `Vazamento de Energia: ${data.energyLeak}\n\n` +
+        `Perfil: ${prof.nome}\n${prof.texto}`;
+
+      const payload = {
+        apiKey: API_KEY,
+        testId: "triade_v1",
+        nome: data.prettyData.nome,
+        email: data.prettyData.email,
+        idade: data.prettyData.idade,
+        profissao: data.prettyData.profissao,
+        resumo: resumoTriade,
+        pdfBase64: base64,
+        pdfFileName: pdfFileName,
+        sendEmail: true,
+        manualSend: true
+      };
+
+      await postResultToScript(payload);
+      await wait(1500);
+
+      setAutoSendStatus("✅ E-mail reenviado com sucesso! Verifique sua caixa de entrada.", "success");
+      alert('✅ Resultados enviados com sucesso para ' + data.prettyData.email + ' e impulsoflow@gmail.com');
+    } catch (e) {
+      console.error(e);
+      setAutoSendStatus("❌ Falha no envio. Tente novamente ou baixe o PDF.", "error");
+      alert('❌ Erro ao enviar e-mail. Tente baixar o PDF ou tente novamente.');
+    } finally {
+      if(btn) btn.disabled = false;
+    }
+  }
+
+  // ========================================
+  // 🏁 INÍCIO E NAVEGAÇÃO DO QUIZ
   // ========================================
   const questions = [
     "1. Costumo ir a eventos, festas ou cursos, mesmo sem ter muita vontade, para agradar meu chefe, amigos ou família.",
@@ -1322,7 +1401,7 @@
     const payload = showResults();
     if (!payload) return;
     
-    // Armazena os dados para o envio automático
+    // Armazena os dados para o envio automático ou manual
     window._triadeData = payload;
 
     // Aguarda 1 segundo para garantir a renderização dos gráficos na tela antes de gerar o PDF
