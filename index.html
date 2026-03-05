@@ -679,185 +679,195 @@
     }
   }
 
-// ===== Material do Relatório =====
+// ===== Material do Relatório (Otimizado para Apresentação em PDF) =====
 function triadMaterialFullText() {
+
+  // ============================================================================
+  // 1. ÁREA DE CONFIGURAÇÃO DE IMAGENS DOS PERSONAGENS (PARA O PDF)
+  // Substitua as strings abaixo pelo código Base64 ou URL local das suas imagens.
+  // O formato Base64 é o mais seguro para garantir que a imagem apareça no PDF.
+  // ============================================================================
+  const imgSuperHomem = "https://ui-avatars.com/api/?name=Super+Homem&background=ff3333&color=fff"; // Cole seu Base64 aqui
+  const imgHomer = "https://ui-avatars.com/api/?name=Homer+Simpson&background=ffcc00&color=333";      // Cole seu Base64 aqui
+  const imgEquilibrista = "https://ui-avatars.com/api/?name=Equilibrista&background=ff9900&color=fff"; // Cole seu Base64 aqui
+  const imgHomemDeFerro = "https://ui-avatars.com/api/?name=Homem+De+Ferro&background=005ce6&color=fff"; // Cole seu Base64 aqui
+  const imgThor = "https://ui-avatars.com/api/?name=Thor&background=003399&color=fff";                 // Cole seu Base64 aqui
+
+  // ============================================================================
+  // 2. FUNÇÃO QUE GERA A ESFERA PERCENTUAL (GRÁFICO) CONFORME SEU MODELO
+  // Esta função constrói um SVG nativo (Garante 100% de compatibilidade no PDF)
+  // ============================================================================
+  function gerarEsferaPDF(pImp, pUrg, pCir) {
+    const r = 15.9155;
+    const blueOffset = 25;
+    const redOffset = 25 - pImp;
+    const yellowOffset = 25 - pImp - pUrg;
+    
+    return [
+      '<div style="text-align: center; margin-top: 15px;">',
+      '  <svg width="80" height="80" viewBox="0 0 32 32" style="border-radius: 50%;">',
+      '    <circle r="' + r + '" cx="16" cy="16" fill="#fff" />',
+      '    <!-- Fatias do Gráfico (Azul, Vermelho, Amarelo) -->',
+      '    <circle r="' + r + '" cx="16" cy="16" fill="transparent" stroke="#005ce6" stroke-width="32" stroke-dasharray="' + pImp + ' ' + (100 - pImp) + '" stroke-dashoffset="' + blueOffset + '" />',
+      '    <circle r="' + r + '" cx="16" cy="16" fill="transparent" stroke="#ff3333" stroke-width="32" stroke-dasharray="' + pUrg + ' ' + (100 - pUrg) + '" stroke-dashoffset="' + redOffset + '" />',
+      '    <circle r="' + r + '" cx="16" cy="16" fill="transparent" stroke="#ffcc00" stroke-width="32" stroke-dasharray="' + pCir + ' ' + (100 - pCir) + '" stroke-dashoffset="' + yellowOffset + '" />',
+      '  </svg>',
+      '  <div style="font-size: 11px; margin-top: 5px; font-weight: bold; font-family: Arial, sans-serif;">',
+      '    <span style="color:#005ce6">I:' + pImp + '%</span> | ',
+      '    <span style="color:#ff3333">U:' + pUrg + '%</span> | ',
+      '    <span style="color:#d4a017">C:' + pCir + '%</span>',
+      '  </div>',
+      '</div>'
+    ].join("");
+  }
+
+  // ============================================================================
+  // 3. RETORNO DA ESTRUTURA HTML (SLIDES DA APRESENTAÇÃO)
+  // ============================================================================
   return [
     "<style>",
-    "  /* Estilos Globais do Relatório */",
-    "  .triad-container { font-family: 'Segoe UI', Arial, sans-serif; color: #333; line-height: 1.6; max-width: 900px; margin: 0 auto; }",
-    "  .triad-title { color: #2c3e50; text-align: center; border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 20px; }",
-    "  .triad-intro { font-size: 1.1em; text-align: center; color: #555; margin-bottom: 40px; }",
-    
-    "  /* Estilos das Esferas */",
-    "  .sphere-container { display: flex; align-items: center; margin-bottom: 15px; }",
-    "  .triad-sphere { display: inline-block; width: 40px; height: 40px; border-radius: 50%; margin-right: 15px; box-shadow: inset -8px -8px 12px rgba(0,0,0,0.2), 3px 3px 6px rgba(0,0,0,0.15); flex-shrink: 0; }",
-    "  .sphere-blue { background: radial-gradient(circle at 12px 12px, #4facfe, #0052d4); } /* Importante (70%) */",
-    "  .sphere-red { background: radial-gradient(circle at 12px 12px, #ff758c, #d11a2a); } /* Urgente (20%) */",
-    "  .sphere-yellow { background: radial-gradient(circle at 12px 12px, #f6d365, #d4a017); } /* Circunstancial (10%) */",
-    
-    "  /* Seções de Texto */",
-    "  .triad-section { background: #fff; border-radius: 10px; padding: 25px; margin-bottom: 25px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); border: 1px solid #eee; }",
-    "  .triad-section h2 { margin-top: 0; color: #2c3e50; font-size: 1.5em; }",
-    
-    "  /* Cards dos Perfis */",
-    "  .profile-card { display: flex; align-items: flex-start; background: #fafafa; padding: 25px; border-radius: 12px; margin-bottom: 25px; border-left: 6px solid #ccc; box-shadow: 0 4px 12px rgba(0,0,0,0.06); transition: transform 0.2s; }",
-    "  .profile-card:hover { transform: translateY(-3px); }",
-    "  .profile-super { border-left-color: #d11a2a; }",
-    "  .profile-homer { border-left-color: #d4a017; }",
-    "  .profile-equil { border-left-color: #ff9900; }",
-    "  .profile-iron { border-left-color: #0052d4; }",
-    "  .profile-thor { border-left-color: #4facfe; }",
-    
-    "  /* Lateral do Card (Ícone + Esfera) */",
-    "  .profile-sidebar { display: flex; flex-direction: column; align-items: center; margin-right: 25px; min-width: 80px; }",
-    "  .profile-img { width: 75px; height: 75px; border-radius: 50%; object-fit: cover; object-position: center; margin-bottom: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); border: 3px solid #fff; background-color: #fff; }",
-    "  .spheres-group { display: flex; gap: 5px; }",
-    "  .sphere-small { width: 30px; height: 30px; margin-right: 0; }",
-    
-    "  /* Conteúdo do Card */",
-    "  .profile-content { flex: 1; }",
-    "  .profile-title { margin: 0 0 8px 0; font-size: 1.5em; color: #2c3e50; }",
-    "  .profile-subtitle { font-weight: 600; color: #666; margin-bottom: 12px; display: inline-block; background: #eee; padding: 4px 10px; border-radius: 6px; font-size: 0.9em; }",
-    "  .triad-list { padding-left: 20px; margin-top: 10px; }",
-    "  .triad-list li { margin-bottom: 8px; }",
+    "  .pdf-container { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; line-height: 1.5; }",
+    "  .pdf-page { page-break-after: always; padding: 20px 0; }",
+    "  .avoid-break { page-break-inside: avoid; margin-bottom: 25px; }",
+    "  .title { color: #2c3e50; text-align: center; border-bottom: 2px solid #ccc; padding-bottom: 10px; font-size: 24px; }",
+    "  .subtitle { text-align: center; color: #555; font-size: 16px; margin-bottom: 30px; }",
+    "  .card-table { width: 100%; border-collapse: collapse; background-color: #fafafa; border: 1px solid #ddd; border-radius: 8px; }",
+    "  .card-td-img { width: 110px; padding: 20px; text-align: center; vertical-align: top; border-right: 1px solid #ddd; }",
+    "  .card-td-text { padding: 20px; vertical-align: top; }",
+    "  .char-img { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; }", // Imagens em ~2x2cm
+    "  h2 { color: #2c3e50; font-size: 20px; margin-top: 0; }",
+    "  h3 { color: #2c3e50; font-size: 18px; margin-top: 0; margin-bottom: 5px; }",
     "</style>",
     
-    "<div class='triad-container'>",
-    "  <h1 class='triad-title'>TRÍADE DO TEMPO</h1>",
-    "  <p class='triad-intro'><strong>Coloque o relógio e a agenda para funcionarem.</strong><br>A Tríade do Tempo é um modelo atualizado de classificação que mostra, gráfica e percentualmente, a forma como você utiliza suas horas. O tempo é uma tríade composta de atividades importantes, urgentes e circunstanciais.</p>",
+    "<div class='pdf-container'>",
+
+    // --- SLIDE 1: INTRODUÇÃO E EXPLICAÇÃO DAS ESFERAS ---
+    "  <div class='pdf-page'>",
+    "    <h1 class='title'>TRÍADE DO TEMPO</h1>",
+    "    <p class='subtitle'><strong>Coloque o relógio e a agenda para funcionarem</strong><br>O tempo é uma tríade composta de atividades importantes, urgentes e circunstanciais.</p>",
     
-    "  <div class='triad-section'>",
-    "    <div class='sphere-container'>",
-    "      <div class='triad-sphere sphere-blue'></div>",
-    "      <h2>Esfera Importante (A Estrada Certa)</h2>",
+    "    <div class='avoid-break'>",
+    "      <h2 style='color: #005ce6;'>Esfera Importante (A Estrada Certa)</h2>",
+    "      <p>Reúne todas as atividades relevantes que geram resultados de curto, médio e longo prazo. É aqui que residem seus projetos de vida, metas profissionais, saúde e desenvolvimento pessoal.</p>",
+    "      <p><strong>Atenção ao prazo:</strong> Uma tarefa importante pode tornar-se urgente se não for realizada no tempo adequado. O adiamento sistemático é o principal inimigo desta esfera.</p>",
     "    </div>",
-    "    <p>A esfera do Importante reúne todas as atividades relevantes que geram resultados de curto, médio e longo prazo. É aqui que residem seus projetos de vida, metas profissionais, saúde, relacionamentos e desenvolvimento pessoal.</p>",
-    "    <p>Tarefas importantes que possuem prazo de execução nunca são urgentes — desde que sejam cumpridas dentro do tempo previsto.</p>",
-    "    <p><strong>Atenção ao prazo:</strong> Uma tarefa importante pode tornar-se urgente se não for realizada no tempo adequado. O adiamento sistemático é o principal inimigo da esfera importante. Viver na esfera importante é viver com propósito, estratégia e resultados consistentes.</p>",
-    "  </div>",
+
+    "    <div class='avoid-break'>",
+    "      <h2 style='color: #ff3333;'>Esfera da Urgência</h2>",
+    "      <p>Abrange atividades para as quais o tempo está curto ou já se esgotou. Elas chegam em cima da hora e causam pressão, estresse e reações emocionais.</p>",
+    "      <p><strong>Consequências:</strong> Estresse elevado, decisões precipitadas e desgaste físico. A urgência raramente nasce do nada; adiar o importante é o caminho direto para a emergência constante.</p>",
+    "    </div>",
+
+    "    <div class='avoid-break'>",
+    "      <h2 style='color: #d4a017;'>Esfera Circunstancial</h2>",
+    "      <p>Engloba atividades desnecessárias que parecem inofensivas, mas são ladrões de tempo. Feitas por comodidade ou fuga de tarefas difíceis.</p>",
+    "      <p><strong>Exemplos:</strong> Consumo digital excessivo, reuniões sem propósito e e-mails fúteis. O resultado é frustração e sensação de ocupação sem progresso.</p>",
+    "    </div>",
     
-    "  <div class='triad-section'>",
-    "    <div class='sphere-container'>",
-    "      <div class='triad-sphere sphere-red'></div>",
-    "      <h2>Esfera da Urgência</h2>",
+    "    <div class='avoid-break' style='background: #f4f4f4; padding: 15px; border-left: 4px solid #2c3e50;'>",
+    "      <h2 style='font-size: 16px;'>Regra do Modelo: As Esferas Não Se Misturam</h2>",
+    "      <p style='font-size: 14px;'>Uma das bases da Tríade é que as esferas são excludentes. Uma tarefa importante negligenciada desloca-se para a emergência, perdendo seu caráter estratégico e virando reação sob pressão.</p>",
     "    </div>",
-    "    <p>A urgência abrange atividades para as quais o tempo está curto ou já se esgotou. Elas chegam em cima da hora e geralmente causam pressão, estresse e reações emocionais intensas.</p>",
-    "    <p><strong>Causas comuns:</strong> Relatórios inesperados, esquecimentos e atrasos, problemas de saúde, reuniões emergenciais e clientes com problemas críticos.</p>",
-    "    <p><strong>Consequências:</strong> Estresse elevado, decisões precipitadas, queda na qualidade das entregas, desgaste físico e emocional, perda de credibilidade.</p>",
-    "    <p><strong>A raiz do problema:</strong> A urgência raramente nasce do nada. Adiar o importante é o caminho direto para o regime de emergência constante. Quem vive apagando incêndios raramente tem tempo para preveni-los.</p>",
-    "  </div>",
+    "  </div>", // Fim Slide 1
+
+    // --- SLIDE 2: PERFIS COMPORTAMENTAIS ---
+    "  <div class='pdf-page'>",
+    "    <h1 class='title'>Qual é o seu perfil?</h1>",
+    "    <p class='subtitle'>A forma como você distribui seu tempo revela seu perfil comportamental.</p>",
+
+    // PERFIL: SUPER HOMEM (Predominância Urgente)
+    "    <table class='card-table avoid-break'>",
+    "      <tr>",
+    "        <td class='card-td-img'>",
+    "          <img src='" + imgSuperHomem + "' class='char-img' style='border: 3px solid #ff3333;'>",
+    "          " + gerarEsferaPDF(10, 65, 25) + "", // Esfera com 65% Urgente
+    "        </td>",
+    "        <td class='card-td-text'>",
+    "          <h3>Super Homem</h3>",
+    "          <p style='font-size:12px; font-weight:bold; color:#777; margin-bottom: 10px;'>Urgência: Predominante | Circunstancial: 2º lugar | Importante: Negligenciada</p>",
+    "          <p><strong>Vive em modo crise constante, sempre resolvendo o que está pegando fogo.</strong></p>",
+    "          <p style='font-size:14px;'>É aquele profissional que parece sempre ocupado, vivendo na adrenalina das crises. Elogiado por 'salvar o dia', raramente encontra tempo para pensar estrategicamente. Está aprisionado num ciclo de esgotamento insustentável.</p>",
+    "          <p style='font-size:14px;'><strong>Consequências:</strong> Estresse crônico, cansaço extremo e problemas de saúde.</p>",
+    "        </td>",
+    "      </tr>",
+    "    </table>",
+
+    // PERFIL: HOMER SIMPSON (Predominância Circunstancial)
+    "    <table class='card-table avoid-break'>",
+    "      <tr>",
+    "        <td class='card-td-img'>",
+    "          <img src='" + imgHomer + "' class='char-img' style='border: 3px solid #ffcc00;'>",
+    "          " + gerarEsferaPDF(10, 15, 75) + "", // Esfera com 75% Circunstancial
+    "        </td>",
+    "        <td class='card-td-text'>",
+    "          <h3>Homer Simpson</h3>",
+    "          <p style='font-size:12px; font-weight:bold; color:#777; margin-bottom: 10px;'>Circunstancial: Predominante | Urgência: 2º lugar | Importante: Ausente</p>",
+    "          <p><strong>Vivendo ao acaso no piloto automático.</strong></p>",
+    "          <p style='font-size:14px;'>Preenche seus dias com trivialidades, distrações e conforto imediato que não levam a lugar algum. Representa uma vida sem plano ou direção. O conforto age como fuga do desconforto de encarar metas reais.</p>",
+    "          <p style='font-size:14px;'><strong>O Desafio:</strong> Sair da zona de conforto, assumir o volante e construir um projeto com metas reais.</p>",
+    "        </td>",
+    "      </tr>",
+    "    </table>",
+    "  </div>", // Fim Slide 2
+
+    // --- SLIDE 3: PERFIS COMPORTAMENTAIS (Continuação) ---
+    "  <div class='pdf-page'>",
     
-    "  <div class='triad-section'>",
-    "    <div class='sphere-container'>",
-    "      <div class='triad-sphere sphere-yellow'></div>",
-    "      <h2>Esfera Circunstancial</h2>",
-    "    </div>",
-    "    <p>A Esfera Circunstancial engloba atividades desnecessárias ou excessivas que, embora pareçam inofensivas, são verdadeiros ladrões de tempo, muitas vezes realizadas por mera comodidade, pressão social, ou como uma fuga de tarefas mais desafiadoras. Caímos nela facilmente devido a hábitos enraizados, à enxurrada de distrações digitais e à busca por conforto imediato.</p>",
-    "    <ul class='triad-list'>",
-    "      <li><strong>Consumo digital excessivo:</strong> Horas navegando nas redes sociais, vídeos sem fim e notificações que interrompem o foco sem agregar valor real.</li>",
-    "      <li><strong>Reuniões sem propósito:</strong> Encontros que não têm pauta clara, não geram decisões e consomem o tempo mais produtivo do dia.</li>",
-    "      <li><strong>Conversas e e-mails fúteis:</strong> Trocas de mensagens sem objetivo, correntes, brincadeiras e discussões que drenam energia sem retorno.</li>",
-    "    </ul>",
-    "    <p><em>Resultado: frustração, sensação de ocupação sem progresso real, e distanciamento dos seus verdadeiros objetivos.</em></p>",
-    "  </div>",
-    
-    "  <div class='triad-section'>",
-    "    <h2>Regra do Modelo: As Esferas Não Se Misturam</h2>",
-    "    <p><strong>Um princípio fundamental:</strong> Uma das bases da Tríade do Tempo é que as três esferas são mutuamente exclusivas, um conceito poderoso, porém contraintuitivo. Frequentemente confundimos a real relevância de uma tarefa (importante) com a pressão de um prazo iminente (urgente), e é essa má interpretação que nos leva a priorizar de forma ineficaz.</p>",
-    "    <p>A verdade é que uma tarefa genuinamente importante, quando negligenciada ou adiada, fatalmente se desloca automaticamente para a esfera da emergência ao se aproximar do seu prazo final, perdendo completamente seu caráter estratégico e transformando-se de ação proativa em mera reação sob pressão.</p>",
-    "  </div>",
-    
-    "  <h2 style='text-align:center; color:#2c3e50; margin-top:50px;'>Qual é o seu perfil?</h2>",
-    "  <p style='text-align:center; margin-bottom:40px;'>A forma como você distribui seu tempo entre as três esferas revela um perfil comportamental distinto. Cada perfil tem características, desafios e potenciais únicos. Identificar o seu é o primeiro passo para uma transformação real.</p>",
-    
-    "  <!-- SUPER HOMEM -->",
-    "  <div class='profile-card profile-super'>",
-    "    <div class='profile-sidebar'>",
-    "      <img src='https://i.pinimg.com/736x/21/cd/ca/21cdca6c8888b6f3c0da0da816997035.jpg' alt='Super Homem' class='profile-img'>",
-    "      <div class='triad-sphere sphere-red' title='Urgência Predominante'></div>",
-    "    </div>",
-    "    <div class='profile-content'>",
-    "      <h3 class='profile-title'>Super Homem</h3>",
-    "      <span class='profile-subtitle'>Urgência: predominante | Circunstancial: 2º lugar | Importante: negligenciada</span>",
-    "      <p><strong>Vive em modo crise constante, sempre resolvendo o que está pegando fogo.</strong></p>",
-    "      <p><strong>Reconhece este padrão?</strong> O Super Homem é aquele profissional que parece sempre ocupado, vivendo na adrenalina das crises, resolvendo tudo na última hora. Ele é frequentemente elogiado por 'salvar o dia', o que, ironicamente, reforça esse padrão exaustivo. Com uma agenda dominada por reações urgentes, ele raramente encontra tempo para planejar ou pensar estrategicamente. Ele está aprisionado em um ciclo de esgotamento, e essa dinâmica é insustentável a longo prazo.</p>",
-    "      <p><strong>Possíveis consequências:</strong> Estresse crônico, cansaço extremo, depressão, insegurança e problemas de saúde.</p>",
-    "    </div>",
-    "  </div>",
-    
-    "  <!-- HOMER SIMPSON -->",
-    "  <div class='profile-card profile-homer'>",
-    "    <div class='profile-sidebar'>",
-    "      <img src='https://i.pinimg.com/736x/8a/be/ca/8abeca51bf738e4a93c7849e751eb0e1.jpg' alt='Homer Simpson' class='profile-img' style='object-position: top;'>",
-    "      <div class='triad-sphere sphere-yellow' title='Circunstancial Predominante'></div>",
-    "    </div>",
-    "    <div class='profile-content'>",
-    "      <h3 class='profile-title'>Homer Simpson</h3>",
-    "      <span class='profile-subtitle'>Circunstancial: predominante | Urgência: 2º lugar | Importante: ausente</span>",
-    "      <p><strong>Vivendo ao acaso:</strong> O Homer Simpson distribui seu tempo predominantemente na esfera circunstancial, preenchendo seus dias com trivialidades como redes sociais, conversas ociosas e pequenas distrações que oferecem um conforto imediato, mas não levam a lugar algum.</p>",
-    "      <p>Esse perfil representa uma vida sem plano, sem projeto e sem direção clara, vivida no piloto automático. Os anos podem passar com uma persistente sensação de 'para onde foi o tempo?', já que o conforto da esfera circunstancial age como uma fuga do desconforto de encarar metas e desafios reais.</p>",
-    "      <p><strong>O desafio:</strong> Sair da zona de conforto e construir um projeto de vida com metas reais e planos de ação. Assuma o controle, saia do banco do passageiro e ocupe o lugar de piloto.</p>",
-    "    </div>",
-    "  </div>",
-    
-    "  <!-- O EQUILIBRISTA -->",
-    "  <div class='profile-card profile-equil'>",
-    "    <div class='profile-sidebar'>",
-    "      <img src='https://img.freepik.com/vetores-premium/equilibrista-com-vara-na-corda-bamba-ilustracao-em-vetor-plano_124715-1279.jpg' alt='O Equilibrista' class='profile-img'>",
-    "      <div class='spheres-group'>",
-    "        <div class='triad-sphere sphere-red sphere-small' title='Urgência'></div>",
-    "        <div class='triad-sphere sphere-yellow sphere-small' title='Circunstancial'></div>",
-    "      </div>",
-    "    </div>",
-    "    <div class='profile-content'>",
-    "      <h3 class='profile-title'>O Equilibrista</h3>",
-    "      <p>O Equilibrista se encontra em um cabo de guerra constante entre apagar incêndios urgentes e preencher os momentos ociosos com distrações circunstanciais, dedicando pouquíssimo ou nenhum tempo ao que realmente importa. Ele confunde movimento com progresso e ocupação com produtividade.</p>",
-    "      <ul class='triad-list'>",
-    "        <li><strong>Alto estresse:</strong> Vive entre emergências e distrações, sem respiro para planejar ou respirar.</li>",
-    "        <li><strong>Dificuldade em dizer não:</strong> Aceita tudo, compromete-se com todos e acaba sobrecarregado sem avançar nos objetivos reais.</li>",
-    "        <li><strong>Esgotamento constante:</strong> A sensação é de estar sempre correndo, mas nunca chegando. Ocupado 24h, realizado quase nunca.</li>",
-    "        <li><strong>Falta de planejamento:</strong> Sem estratégia definida, cada dia é uma reação ao que aparece.</li>",
-    "      </ul>",
-    "    </div>",
-    "  </div>",
-    
-    "  <!-- HOMEM DE FERRO -->",
-    "  <div class='profile-card profile-iron'>",
-    "    <div class='profile-sidebar'>",
-    "      <img src='https://i.pinimg.com/736x/01/5e/54/015e54d83ee6e7d69bfa774900aef7ee.jpg' alt='Homem de Ferro' class='profile-img'>",
-    "      <div class='triad-sphere sphere-blue' title='Importante Predominante'></div>",
-    "    </div>",
-    "    <div class='profile-content'>",
-    "      <h3 class='profile-title'>Homem de Ferro</h3>",
-    "      <span class='profile-subtitle'>Importante: predominante | Circunstancial: 2º lugar | Urgência: controlada</span>",
-    "      <p><strong>Perfil de alto desempenho, com foco em planejamento, estratégia e entrega de valor.</strong></p>",
-    "      <p><strong>Um perfil estratégico:</strong> O Homem de Ferro vive prioritariamente na esfera do importante. Ele não apenas trabalha duro, mas trabalha de forma inteligente, com uma visão clara de seus objetivos e alinhando suas ações diárias a eles. Consegue antecipar problemas antes que se tornem urgências, mantendo a calma sob pressão.</p>",
-    "      <p><strong>Ponto de atenção:</strong> O risco deste perfil reside na forma como a esfera circunstancial pode se infiltrar gradualmente, muitas vezes através de lazer excessivo ou redes sociais. A auto-monitorização contínua é essencial para manter a vantagem inabalável.</p>",
-    "    </div>",
-    "  </div>",
-    
-    "  <!-- SUPER PODEROSO THOR -->",
-    "  <div class='profile-card profile-thor'>",
-    "    <div class='profile-sidebar'>",
-    "      <img src='https://i.pinimg.com/736x/84/cf/c1/84cfc1664bf873f886470af689ea53ee.jpg' alt='Thor' class='profile-img'>",
-    "      <div class='triad-sphere sphere-blue' title='Importante Altamente Dominante'></div>",
-    "    </div>",
-    "    <div class='profile-content'>",
-    "      <h3 class='profile-title'>Super Poderoso Thor</h3>",
-    "      <span class='profile-subtitle'>O perfil mais próximo da Tríade Ideal</span>",
-    "      <p>O Thor representa o mais alto nível de gestão do tempo. Com a esfera do importante amplamente dominante e a urgência ocupando um espaço secundário e controlado, este profissional é sinônimo de preparo, planejamento e alto valor entregue.</p>",
-    "      <p>Ele não apenas resolve problemas — ele os antecipa, e não apenas cumpre prazos — ele os define com estratégia, dominando a arte de dizer 'não' ao urgente e ao trivial para proteger seu tempo estratégico.</p>",
-    "      <ul class='triad-list'>",
-    "        <li>Alto preparo e planejamento</li>",
-    "        <li>Urgências raras e controladas</li>",
-    "        <li>Alto valor profissional percebido</li>",
-    "        <li>Metas claras e consistentes</li>",
-    "        <li>Equilíbrio entre entrega e qualidade de vida</li>",
-    "      </ul>",
-    "      <p><strong>Objetivo:</strong> Refinar ainda mais para resultados extraordinários.</p>",
-    "    </div>",
-    "  </div>",
-    
+    // PERFIL: EQUILIBRISTA (Empate Urgente/Circunstancial)
+    "    <table class='card-table avoid-break'>",
+    "      <tr>",
+    "        <td class='card-td-img'>",
+    "          <img src='" + imgEquilibrista + "' class='char-img' style='border: 3px solid #ff9900;'>",
+    "          " + gerarEsferaPDF(10, 45, 45) + "", // Esfera com 45% Urgente e 45% Circunstancial
+    "        </td>",
+    "        <td class='card-td-text'>",
+    "          <h3>O Equilibrista</h3>",
+    "          <p style='font-size:12px; font-weight:bold; color:#777; margin-bottom: 10px;'>Cabo de guerra entre Urgências e Distrações</p>",
+    "          <p><strong>Confunde movimento com progresso e ocupação com produtividade.</strong></p>",
+    "          <ul style='font-size:14px; padding-left: 20px; margin-bottom: 0;'>",
+    "            <li><strong>Alto estresse:</strong> Vive entre emergências e distrações, sem respiro.</li>",
+    "            <li><strong>Dificuldade em dizer não:</strong> Aceita tudo e acaba sobrecarregado.</li>",
+    "            <li><strong>Falta de planejamento:</strong> Cada dia é uma reação ao que aparece.</li>",
+    "          </ul>",
+    "        </td>",
+    "      </tr>",
+    "    </table>",
+
+    // PERFIL: HOMEM DE FERRO (Predominância Importante)
+    "    <table class='card-table avoid-break'>",
+    "      <tr>",
+    "        <td class='card-td-img'>",
+    "          <img src='" + imgHomemDeFerro + "' class='char-img' style='border: 3px solid #005ce6;'>",
+    "          " + gerarEsferaPDF(65, 10, 25) + "", // Esfera com 65% Importante
+    "        </td>",
+    "        <td class='card-td-text'>",
+    "          <h3>Homem de Ferro</h3>",
+    "          <p style='font-size:12px; font-weight:bold; color:#777; margin-bottom: 10px;'>Importante: Predominante | Circunstancial: 2º lugar | Urgência: Controlada</p>",
+    "          <p><strong>Perfil de alto desempenho, foco em estratégia e entrega de valor.</strong></p>",
+    "          <p style='font-size:14px;'>Vive prioritariamente na esfera importante. Trabalha de forma inteligente, antecipando problemas antes que virem crises e mantendo a calma sob pressão. Gera resultados impressionantes.</p>",
+    "          <p style='font-size:14px;'><strong>Ponto de atenção:</strong> O lazer excessivo ou redes sociais podem se infiltrar gradualmente, erodindo o foco se não for monitorado.</p>",
+    "        </td>",
+    "      </tr>",
+    "    </table>",
+
+    // PERFIL: THOR (Ideal / Importante Altamente Dominante)
+    "    <table class='card-table avoid-break'>",
+    "      <tr>",
+    "        <td class='card-td-img'>",
+    "          <img src='" + imgThor + "' class='char-img' style='border: 3px solid #003399;'>",
+    "          " + gerarEsferaPDF(70, 20, 10) + "", // Esfera do Modelo Exato: 70% I, 20% U, 10% C
+    "        </td>",
+    "        <td class='card-td-text'>",
+    "          <h3>Super Poderoso Thor</h3>",
+    "          <p style='font-size:12px; font-weight:bold; color:#777; margin-bottom: 10px;'>O perfil mais próximo da Tríade Ideal</p>",
+    "          <p><strong>O mais alto nível de gestão do tempo. Sinônimo de preparo e planejamento.</strong></p>",
+    "          <p style='font-size:14px;'>Ele não apenas cumpre prazos, ele os define com estratégia, dominando a arte de dizer 'não' ao trivial. Suas raras urgências são exceções calculadas. Possui excelência profissional e uma vida profundamente equilibrada.</p>",
+    "          <p style='font-size:14px;'><strong>Características:</strong> Alto valor percebido, urgências raras e metas consistentes.</p>",
+    "        </td>",
+    "      </tr>",
+    "    </table>",
+
+    "  </div>", // Fim Slide 3
     "</div>"
   ].join("\n");
 }
