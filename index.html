@@ -675,7 +675,7 @@
 
     if(Math.abs(a - c) <= 6 && a > b && c > b){
       prof = { 
-        nome: "🎪 O Equilibrista", 
+        nome: "O Equilibrista", 
         subtitle: "Cabo de guerra entre urgências e distrações (Urgência ≈ Circunstância)",
         desc: "Confunde movimento com progresso e ocupação com produtividade.",
         texto: "Encontra-se em um cabo de guerra constante entre apagar incêndios urgentes e preencher os momentos ociosos com distrações circunstanciais, dedicando pouquíssimo ou nenhum tempo ao que realmente importa. Resulta em sobrecarga e exaustão sem realizações significativas.\n\n• Alto estresse: Vive entre emergências e distrações.\n• Dificuldade em dizer não: Aceita tudo e acaba sobrecarregado.\n• Esgotamento constante: Ocupado 24h, realizado quase nunca.\n• Falta de planejamento: Cada dia é uma reação, não uma construção." 
@@ -683,7 +683,7 @@
     }
     else if(c >= b && c >= a && a >= b){
       prof = { 
-        nome: "⚡ Super Homem", 
+        nome: "Super Homem", 
         subtitle: "Urgência: predominante | Circunstancial: 2º lugar | Importante: negligenciada",
         desc: "Vive em modo crise constante, sempre resolvendo o que está pegando fogo.",
         texto: "É o profissional que parece sempre ocupado, vivendo na adrenalina das crises e resolvendo tudo na última hora. É frequentemente elogiado por 'salvar o dia', o que ironicamente reforça esse padrão exaustivo. Com a agenda dominada por reações, raramente tem tempo para pensar estrategicamente. Embora os colegas o vejam como indispensável, ele está aprisionado em um ciclo insustentável.\n\nPossíveis consequências:\n😰 Estresse crônico e Cansaço extremo\n😔 Depressão e Insegurança\n🏥 Problemas de saúde"
@@ -691,7 +691,7 @@
     }
     else if(a >= b && a >= c && c >= b){
       prof = { 
-        nome: "🍩 Homer Simpson", 
+        nome: "Homer Simpson", 
         subtitle: "Circunstancial: predominante | Urgência: 2º lugar | Importante: ausente",
         desc: "Vivendo ao acaso no piloto automático.",
         texto: "Distribui seu tempo em trivialidades como redes sociais, conversas ociosas e pequenas distrações que oferecem um conforto imediato, mas não levam a lugar nenhum. A urgência surge como reações inevitáveis e a esfera importante praticamente não existe.\n\nRepresenta uma vida sem plano, projeto ou direção. O conforto da circunstância age como fuga do desconforto de encarar metas reais. A frustração no longo prazo é uma consequência amarga.\n\n💡 O desafio: Saia do banco do passageiro, assuma o piloto e comece a lutar pelos seus sonhos." 
@@ -699,7 +699,7 @@
     }
     else if(b >= a && b >= c && a >= c){
       prof = { 
-        nome: "🦾 Homem de Ferro", 
+        nome: "Homem de Ferro", 
         subtitle: "Importante: predominante | Circunstancial: 2º lugar | Urgência: controlada",
         desc: "Perfil de alto desempenho, focado em planejamento, estratégia e entrega de valor.",
         texto: "Vive prioritariamente na esfera do importante. Não apenas trabalha duro, mas de forma inteligente, com visão clara de seus objetivos. Antecipa problemas antes que se tornem urgências, mantendo a calma sob pressão. Gera resultados impressionantes e um profundo senso de propósito.\n\n⚠️ Ponto de atenção: O risco reside na forma como a esfera circunstancial pode se infiltrar gradualmente, através de lazer excessivo ou redes sociais, erodindo o foco sutilmente."
@@ -707,7 +707,7 @@
     }
     else if(b >= a && b >= c && c >= a){
       prof = { 
-        nome: "🔨 Super Poderoso Thor", 
+        nome: "Super Poderoso Thor", 
         subtitle: "Importante: dominante | O perfil mais próximo da Tríade Ideal",
         desc: "Sinônimo de preparo, planejamento e alto valor entregue.",
         texto: "Representa o mais alto nível de gestão do tempo. Essa maestria é resultado de hábitos deliberados e visão cristalina. Não apenas resolve problemas, ele os antecipa. Domina a arte de dizer 'não' ao urgente e ao trivial para proteger seu tempo estratégico.\n\nA circunstância existe como descanso intencional, alimentando seu desempenho e traduzindo-se em excelência e equilíbrio.\n\n🎯 Próximo passo: Refinamento contínuo para eliminar os últimos focos de urgência." 
@@ -1021,7 +1021,7 @@
     doc.text("Rogério Braga", pageW / 2, y, { align: "center" });
 
     const safeName = sanitizeInput(name).replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_]/g, "");
-    const pdfFileName = `Resultado_Triade_do_Tempo_${safeName}.pdf`;
+    const pdfFileName = `Triade${safeName}.pdf`;
 
     return { doc, pdfFileName };
   }
