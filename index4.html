@@ -1,0 +1,1507 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Teste da Tríade do Tempo - ImpulsoCoaching (Guiado)</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.4.0/purify.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg1:#0b4aa2;
+      --bg2:#062b62;
+      --surface:#f4f9ff;
+      --card:#ffffff;
+      --text:#0f172a;
+      --muted:#475569;
+      --primary:#0b63ce;
+      --primary2:#084aa0;
+      --accent:#38bdf8;
+      --border:#cfe6ff;
+      --shadow:0 14px 34px rgba(2, 32, 71, .18);
+      --shadow2:0 8px 20px rgba(2, 32, 71, .12);
+      --radius:18px;
+      --radius2:14px;
+    }
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family:'Poppins', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background:
+        radial-gradient(1200px 700px at 20% 10%, rgba(56,189,248,.35), transparent 55%),
+        radial-gradient(900px 600px at 85% 15%, rgba(255,215,0,.18), transparent 60%),
+        linear-gradient(135deg, var(--bg1), var(--bg2));
+      color:var(--text);
+      line-height:1.6;
+      padding:18px;
+    }
+    .container{
+      max-width:980px;
+      margin:0 auto;
+      background:linear-gradient(180deg, rgba(244,249,255,.95), rgba(244,249,255,.92));
+      border:1px solid rgba(56,189,248,.35);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+      position:relative;
+    }
+    .container::before{
+      content:'';
+      position:absolute;
+      top:0; left:0; right:0;
+      height:6px;
+      background:linear-gradient(90deg, var(--accent), var(--primary));
+    }
+    .wrap{ padding:26px; }
+    .header{
+      text-align:center;
+      padding:6px 0 16px;
+      margin-bottom:10px;
+    }
+    .brand{
+      margin:0;
+      font-weight:800;
+      letter-spacing:.10em;
+      text-transform:uppercase;
+      color:var(--primary);
+      font-size:13px;
+    }
+    .tagline{
+      margin:6px 0 0;
+      font-weight:700;
+      color:#0b2a52;
+      font-size:13px;
+      letter-spacing:.02em;
+    }
+    .title{
+      margin:10px 0 0;
+      font-size:34px;
+      line-height:1.15;
+      color:#063b7a;
+      font-weight:900;
+    }
+    .subtitle{
+      margin:10px auto 0;
+      max-width:78ch;
+      color:var(--muted);
+      font-size:14px;
+    }
+    .card{
+      background:var(--card);
+      border:1px solid rgba(207,230,255,.95);
+      border-radius:var(--radius2);
+      box-shadow:var(--shadow2);
+      padding:18px;
+    }
+    .instructions{
+      background:linear-gradient(180deg, rgba(56,189,248,.14), rgba(56,189,248,.08));
+      border:1px solid rgba(56,189,248,.25);
+      border-left:6px solid var(--accent);
+      border-radius:var(--radius2);
+      padding:16px;
+      margin:14px 0 18px;
+      color:var(--text);
+    }
+    .instructions p{
+      margin:0 0 10px;
+      font-size:14px;
+      color:var(--text);
+    }
+    .instructions p:last-child{ margin-bottom:0; }
+    .grid-2{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:14px;
+    }
+    @media (max-width: 820px){
+      .wrap{ padding:16px; }
+      .title{ font-size:28px; }
+      .grid-2{ grid-template-columns:1fr; }
+    }
+    .form-group label{
+      display:block;
+      font-weight:800;
+      color:#063b7a;
+      margin-bottom:8px;
+      font-size:14px;
+    }
+    .form-group input{
+      width:100%;
+      padding:14px;
+      border:1.5px solid rgba(11,99,206,.28);
+      border-radius:12px;
+      font-size:15px;
+      background:#fff;
+      outline:none;
+      transition: box-shadow .2s ease, border-color .2s ease;
+    }
+    .form-group input:focus{
+      border-color:rgba(11,99,206,.55);
+      box-shadow:0 0 0 4px rgba(56,189,248,.22);
+    }
+    .error{
+      display:none;
+      margin-top:6px;
+      color:#b91c1c;
+      font-size:13px;
+      font-weight:600;
+    }
+    .step{ display:none; }
+    .step.active{ display:block; }
+    .topbar{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px 12px;
+      align-items:center;
+      justify-content:space-between;
+      margin:10px 0 12px;
+    }
+    .counter{
+      font-weight:800;
+      color:#0b2a52;
+      font-size:14px;
+    }
+    .progress-meta{
+      font-weight:700;
+      color:var(--muted);
+      font-size:13px;
+    }
+    .progress-bar{
+      width:100%;
+      background:#e6eefc;
+      border-radius:999px;
+      overflow:hidden;
+      height:12px;
+      border:1px solid rgba(11,99,206,.12);
+    }
+    .progress-fill{
+      height:100%;
+      width:0%;
+      border-radius:999px;
+      background:linear-gradient(90deg, var(--accent), var(--primary));
+      transition: width .35s ease-in-out;
+    }
+    .question-title{
+      margin:0 0 10px;
+      font-size:16px;
+      font-weight:500;
+      color:#0f172a;
+    }
+    .options{
+      display:flex;
+      flex-wrap:wrap;
+      justify-content:center;
+      align-items:stretch;
+      gap:10px;
+      margin-top:12px;
+    }
+    .opt{
+      border:1.5px solid rgba(11,99,206,.22);
+      background:rgba(11,99,206,.06);
+      border-radius:12px;
+      padding:10px 10px;
+      cursor:pointer;
+      user-select:none;
+      transition: transform .12s ease, box-shadow .2s ease, border-color .2s ease, background .2s ease;
+      min-height:48px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      font-weight:500;
+      color:#0b2a52;
+      font-size:13px;
+      flex: 0 1 calc(20% - 10px);
+      max-width: 180px;
+      min-width: 120px;
+    }
+    @media (max-width: 820px){
+      .opt{ flex: 0 1 calc(50% - 10px); min-width: 140px; }
+    }
+    @media (max-width: 380px){
+      .opt{ flex: 0 1 100%; max-width: 340px; min-width: 0; }
+    }
+    .opt:hover{
+      transform: translateY(-1px);
+      box-shadow:0 12px 18px rgba(2, 32, 71, .10);
+      border-color:rgba(56,189,248,.55);
+    }
+    .opt[aria-checked="true"]{
+      background:linear-gradient(45deg, var(--primary), var(--primary2));
+      border-color:rgba(11,99,206,.55);
+      color:#fff;
+      box-shadow:0 14px 22px rgba(11,99,206,.22);
+      font-weight:600;
+    }
+    .nav{
+      display:flex;
+      gap:10px;
+      justify-content:space-between;
+      margin-top:14px;
+      flex-wrap:wrap;
+    }
+    .btn{
+      appearance:none;
+      border:none;
+      cursor:pointer;
+      border-radius:14px;
+      padding:12px 16px;
+      font-size:14px;
+      font-weight:800;
+      transition: transform .12s ease, box-shadow .2s ease, filter .2s ease;
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+    }
+    .btn-primary{
+      background:linear-gradient(45deg, var(--primary), var(--primary2));
+      color:#fff;
+      box-shadow:0 10px 18px rgba(11,99,206,.22);
+    }
+    .btn-primary:hover{
+      transform: translateY(-1px);
+      filter:saturate(1.05);
+      box-shadow:0 14px 26px rgba(11,99,206,.30);
+    }
+    .btn-ghost{
+      background:#fff;
+      color:#0b2a52;
+      border:1.5px solid rgba(11,99,206,.22);
+      box-shadow:0 8px 16px rgba(2, 32, 71, .08);
+      text-decoration:none;
+    }
+    .btn-ghost:hover{
+      transform: translateY(-1px);
+      border-color:rgba(56,189,248,.55);
+    }
+    .btn:disabled{
+      opacity:.55;
+      cursor:not-allowed;
+      transform:none !important;
+      box-shadow:none !important;
+    }
+    .result-hero{
+      text-align:center;
+      margin-top:10px;
+    }
+    .result-hero h2{
+      margin:0;
+      font-size:20px;
+      font-weight:900;
+      color:#063b7a;
+    }
+    .result-grid{
+      display:grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap:14px;
+      margin-top:14px;
+    }
+    @media (max-width: 820px){
+      .result-grid{ grid-template-columns:1fr; }
+    }
+    .result-box{
+      background:#fff;
+      border:1px solid rgba(207,230,255,.95);
+      border-left:6px solid var(--accent);
+      padding:16px;
+      border-radius:var(--radius2);
+      box-shadow:var(--shadow2);
+    }
+    .result-box h3{
+      margin:0 0 6px;
+      font-size:15px;
+      font-weight:900;
+      color:#063b7a;
+    }
+    .result-box p{ margin:0; color:var(--muted); font-size:13px; }
+    .progress-container{ margin:12px 0; }
+    .progress-label{
+      font-weight:800;
+      color:#0b2a52;
+      margin-bottom:6px;
+      font-size:13px;
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .triad-bar{
+      width:100%;
+      background:#e6eefc;
+      border-radius:999px;
+      overflow:hidden;
+      height:14px;
+      border:1px solid rgba(11,99,206,.12);
+    }
+    .triad-fill{
+      height:100%;
+      width:0%;
+      border-radius:999px;
+      transition: width .45s ease-in-out;
+    }
+    .fill-a{ background:linear-gradient(90deg,#ffd54a,#f59e0b); }
+    .fill-b{ background:linear-gradient(90deg,#3b82f6,#1d4ed8); }
+    .fill-c{ background:linear-gradient(90deg,#fb7185,#dc2626); }
+    .totals{
+      margin-top:10px;
+      font-size:13px;
+      color:#0b2a52;
+      font-weight:800;
+      line-height:1.55;
+    }
+    #energyLeak{
+      font-weight:1000;
+      color:#7f1d1d;
+      background:rgba(220,38,38,.08);
+      padding:6px 10px;
+      border-radius:12px;
+      border:1px solid rgba(220,38,38,.35);
+      display:inline-block;
+    }
+    .profile{
+      margin-top:12px;
+      padding:14px;
+      border-radius:14px;
+      border:1px solid rgba(11,99,206,.18);
+      background:linear-gradient(180deg, rgba(56,189,248,.10), rgba(56,189,248,.04));
+    }
+    .profile .name{
+      font-weight:900;
+      color:#063b7a;
+      margin:0 0 4px;
+      font-size:18px;
+    }
+    .profile .subtitle{
+      font-weight:800;
+      color:var(--primary);
+      margin:0 0 12px;
+      font-size:13px;
+    }
+    .profile .desc{
+      margin:0;
+      color:#0b2a52;
+      font-weight:500;
+      font-size:13px;
+      white-space: pre-line;
+      text-align: justify;
+    }
+    .charts{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:14px;
+      margin-top:14px;
+      align-items:stretch;
+    }
+    @media (max-width: 820px){
+      .charts{ grid-template-columns:1fr; }
+    }
+    .chart-card{
+      background:#fff;
+      border:1px solid rgba(207,230,255,.95);
+      border-radius:var(--radius2);
+      padding:12px;
+      box-shadow:var(--shadow2);
+      min-height:320px;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+    }
+    .chart-card canvas{
+      width:100% !important;
+      aspect-ratio: 1 / 1;
+      height:auto !important;
+      max-height:320px !important;
+      border-radius:12px;
+    }
+    .footer{
+      margin-top:14px;
+      text-align:center;
+      color:var(--muted);
+      font-size:12px;
+      font-weight:700;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="wrap">
+      <div class="header">
+        <p class="brand">ImpulsoCoaching</p>
+        <p class="tagline">A mudança pode acontecer em um instante</p>
+        <h1 class="title">Teste da Tríade do Tempo</h1>
+        <p class="subtitle">Seja honesto ao responder.</p>
+      </div>
+
+      <!-- STEP: INTRO -->
+      <section id="step-intro" class="step active">
+        <div class="instructions">
+          <p>A Tríade do Tempo — desenvolvida por Christian Barbosa e validada em pesquisas com mais de 42 mil profissionais — expõe com precisão onde sua energia está sendo investida. Organizações que adotam essa metodologia relatam ganhos expressivos de performance e foco, com indicadores de produtividade chegando a 50%. Agora, você vai iniciar um processo que líderes de alta performance utilizam para transformar agenda em resultado.</p>
+          <p>Instruções: para cada pergunta, selecione a opção que melhor reflete sua frequência: 1 (Nunca), 2 (Raramente), 3 (Às vezes), 4 (Quase sempre), 5 (Sempre). O avanço será automático. Preencha seus dados para iniciar.</p>
+        </div>
+        <div class="card">
+          <div class="grid-2">
+            <div class="form-group">
+              <label for="name">Nome *</label>
+              <input type="text" id="name" name="name" autocomplete="name" />
+              <p id="name-error" class="error">Por favor, preencha o nome.</p>
+            </div>
+            <div class="form-group">
+              <label for="profession">Profissão *</label>
+              <input type="text" id="profession" name="profession" autocomplete="organization-title" />
+              <p id="profession-error" class="error">Por favor, preencha a profissão.</p>
+            </div>
+          </div>
+          <div class="grid-2" style="margin-top:14px;">
+            <div class="form-group">
+              <label for="age">Idade *</label>
+              <input type="number" id="age" name="age" min="10" max="120" inputmode="numeric" />
+              <p id="age-error" class="error">Por favor, informe uma idade válida (10 a 120).</p>
+            </div>
+            <div class="form-group">
+              <label for="email">E-mail *</label>
+              <input type="email" id="email" name="email" autocomplete="email" />
+              <p id="email-error" class="error">Por favor, preencha um e-mail válido.</p>
+            </div>
+          </div>
+          <div class="nav" style="justify-content:flex-end">
+            <button id="btn-start" class="btn btn-primary" type="button">Iniciar Teste</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- STEP: QUIZ -->
+      <section id="step-quiz" class="step">
+        <div class="topbar">
+          <div class="counter">Pergunta <span id="q-current">1</span> de 18</div>
+          <div class="progress-meta"><span id="answered-count">0</span>/18 respondidas</div>
+        </div>
+        <div class="progress-bar" aria-label="Progresso de respostas">
+          <div id="progress-fill" class="progress-fill"></div>
+        </div>
+        <div class="card" style="margin-top:12px;">
+          <p id="question-text" class="question-title"></p>
+          <div id="options" class="options" role="radiogroup" aria-label="Opções de resposta"></div>
+          <div class="nav">
+            <button id="btn-prev" class="btn btn-ghost" type="button">Anterior</button>
+            <button id="btn-next" class="btn btn-primary" type="button" style="display:none;">Finalizar e Ver Resultado</button>
+          </div>
+        </div>
+        <p class="footer">Fonte: Instituto Impulso Coaching – www.impulsocoaching.com.br</p>
+      </section>
+
+      <!-- STEP: RESULTS -->
+      <section id="step-results" class="step">
+        <div class="result-hero">
+          <h2 id="result-title">Sua Tríade do Tempo</h2>
+          <p id="auto-send-status" class="text-sm font-bold mt-2" style="color: #0b63ce;"></p>
+          <div id="final-success-message" class="hidden" style="margin-top:14px; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.4); padding:16px; border-radius:12px; text-align:center; display:none;">
+              <p style="margin:0; font-size:18px; font-weight:800; color:#065f46;">✅ Resultados processados automaticamente!</p>
+              <p style="margin:6px 0 0; font-size:14px; color:#047857;">Seu relatório completo foi enviado para seu e-mail e para a nossa equipe.<br>Verifique sua caixa de entrada (e spam, se necessário).</p>
+          </div>
+        </div>
+        <div class="result-grid">
+          <div class="card">
+            <div class="progress-container">
+              <div class="progress-label">
+                <span>Circunstância (A)</span>
+                <span id="percentA">0%</span>
+              </div>
+              <div class="triad-bar"><div id="barA" class="triad-fill fill-a" style="width:0%"></div></div>
+            </div>
+            <div class="progress-container">
+              <div class="progress-label">
+                <span>Importância (B)</span>
+                <span id="percentB">0%</span>
+              </div>
+              <div class="triad-bar"><div id="barB" class="triad-fill fill-b" style="width:0%"></div></div>
+            </div>
+            <div class="progress-container">
+              <div class="progress-label">
+                <span>Urgência (C)</span>
+                <span id="percentC">0%</span>
+              </div>
+              <div class="triad-bar"><div id="barC" class="triad-fill fill-c" style="width:0%"></div></div>
+            </div>
+            <div class="totals" id="result-totals">
+              <div><strong>Totais:</strong> A: <span id="totalA">0</span> | B: <span id="totalB">0</span> | C: <span id="totalC">0</span> | Total Geral: <span id="totalGeneral">0</span></div>
+              <div style="margin-top:6px;"><strong>Vazamento de Energia:</strong> <span id="energyLeak">0</span></div>
+            </div>
+            <div class="profile" id="profile-box">
+              <p class="name" id="profile-name">Perfil</p>
+              <p class="subtitle" id="profile-subtitle"></p>
+              <p class="desc" id="profile-desc"></p>
+            </div>
+            <div class="nav" style="margin-top:14px; display: none;" id="btn-back-wrap">
+              <button id="btn-back-quiz" class="btn btn-ghost" type="button">Voltar e revisar</button>
+            </div>
+            <div class="footer" style="margin-top:10px;">
+              <div>ImpulsoCoaching</div>
+              <div><strong>Rogério Braga</strong></div>
+            </div>
+          </div>
+          <div>
+            <div class="result-box">
+              <h3>Circunstância (A)</h3>
+              <p>Tarefas feitas por pressão externa, como agradar outros. Alta pontuação indica tempo gasto em atividades não alinhadas com seus objetivos.</p>
+            </div>
+            <div class="result-box" style="margin-top:10px;">
+              <h3>Importância (B)</h3>
+              <p>Tarefas planejadas, alinhadas com seus objetivos pessoais. Alta pontuação indica boa gestão de tempo e foco no que realmente importa.</p>
+            </div>
+            <div class="result-box" style="margin-top:10px;">
+              <h3>Urgência (C)</h3>
+              <p>Tarefas reativas, feitas sob pressão de prazos. Alta pontuação indica sobrecarga e necessidade de planejamento.</p>
+            </div>
+            <div class="charts">
+              <div class="chart-card">
+                <canvas id="triadChart"></canvas>
+              </div>
+              <div class="chart-card">
+                <canvas id="idealTriadChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+  if (!window.jspdf) {
+    alert("Erro: Não foi possível carregar a biblioteca jsPDF. Verifique sua conexão e tente novamente.");
+  }
+  if (!window.Chart) {
+    alert("Erro: Não foi possível carregar a biblioteca Chart.js. Verifique sua conexão e tente novamente.");
+  }
+
+  // ========================================
+  // ⚙️ CONFIGURAÇÃO DO GOOGLE APPS SCRIPT
+  // ========================================
+  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzQMG4dNq2SkOOeWUWei9m7RoA_Fl9dteIKkK_MQScujsNTuORU1XyWElL-2Kovb-NO/exec";
+  const API_KEY = "2026Impulso$";
+  
+  let autoSendInProgress = false;
+  let autoSendDone = false;
+  let emailSendAttempts = 0;
+  const MAX_EMAIL_ATTEMPTS = 3;
+
+  // Função nativa que desenha a esfera 3D em altíssima qualidade
+  function createSphereBase64(pImp, pUrg, pCir) {
+    const canvas = document.createElement("canvas");
+    canvas.width = 240; canvas.height = 240;
+    const ctx = canvas.getContext("2d");
+    const cx = 120, cy = 120, r = 112;
+    let startAngle = -Math.PI / 2;
+    const data = [
+      { val: pImp, color: "#005ce6" }, // Azul (Importância)
+      { val: pUrg, color: "#ff3333" }, // Vermelho (Urgência)
+      { val: pCir, color: "#ffcc00" }  // Amarelo (Circunstância)
+    ];
+    data.forEach(d => {
+      if(d.val <= 0) return;
+      const sliceAngle = (d.val / 100) * 2 * Math.PI;
+      ctx.beginPath(); ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, r, startAngle, startAngle + sliceAngle);
+      ctx.closePath(); ctx.fillStyle = d.color; ctx.fill();
+      startAngle += sliceAngle;
+    });
+
+    // Efeito Esférico 3D (Brilho e Sombras)
+    const grad = ctx.createRadialGradient(cx-40, cy-40, 10, cx, cy, r);
+    grad.addColorStop(0, "rgba(255,255,255,0.45)");
+    grad.addColorStop(0.5, "rgba(0,0,0,0)");
+    grad.addColorStop(1, "rgba(0,0,0,0.35)");
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fillStyle = grad; ctx.fill();
+    
+    // Borda Circular
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.strokeStyle = "rgba(0,0,0,0.15)"; ctx.lineWidth = 4; ctx.stroke();
+    return canvas.toDataURL("image/png");
+  }
+
+  function wait(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+  function sanitizeInput(input) { return DOMPurify.sanitize(input); }
+  function sanitizeText(s) { return DOMPurify.sanitize(String(s || "")); }
+  function validateEmail(email) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); }
+  function isValidAge(ageStr){
+    const n = Number(ageStr);
+    return Number.isFinite(n) && n >= 10 && n <= 120;
+  }
+  function setAutoSendStatus(msg, type = 'pending') {
+    const el = document.getElementById("auto-send-status");
+    if (el) {
+      el.textContent = msg;
+      el.style.color = type === 'success' ? '#059669' : type === 'error' ? '#dc2626' : '#0b63ce';
+    }
+  }
+
+  async function postResultToScript(payload) {
+    try {
+      const response = await fetch(WEB_APP_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(payload)
+      });
+      return response;
+    } catch (error) {
+      console.error("Erro ao enviar para Google Apps Script:", error);
+      throw error;
+    }
+  }
+
+  // ===== Material Completo do Relatório (Fornecido por Rogério) =====
+  function triadMaterialFullText(){
+    return [
+      "TRÍADE DO TEMPO — Coloque o relógio e a agenda para funcionarem",
+      "",
+      "A Tríade do Tempo é um modelo atualizado de classificação que mostra, gráfica e percentualmente, a forma como você utiliza suas horas.",
+      "O tempo é uma tríade composta de atividades importantes, urgentes e circunstanciais.",
+      "",    
+      "Esfera 1",
+      "Esfera Importante",
+      "A Estrada Certa",
+      "A esfera do Importante reúne todas as atividades relevantes que geram resultados de curto, médio e longo prazo. É aqui que residem seus projetos de vida, metas profissionais, saúde, relacionamentos e desenvolvimento pessoal.",
+      "Tarefas importantes que possuem prazo de execução nunca são urgentes — desde que sejam cumpridas dentro do tempo previsto.",
+      "⚠️ Atenção ao prazo",
+      "Uma tarefa importante pode tornar-se urgente se não for realizada no tempo adequado. O adiamento sistemático é o principal inimigo da esfera importante.",
+      "Viver na esfera importante é viver com propósito, estratégia e resultados consistentes.",
+      "",
+      "Esfera 2",
+      "Esfera da Urgência",
+      "A urgência abrange atividades para as quais o tempo está curto ou já se esgotou. Elas chegam em cima da hora e geralmente causam pressão, estresse e reações emocionais intensas.",
+      "Causas comuns",
+      "* Relatórios inesperados",
+      "* Esquecimentos e atrasos",
+      "* Problemas de saúde",
+      "* Reuniões emergenciais",
+      "* Clientes com problemas críticos",
+      "",
+      "Consequências",
+      "* Estresse elevado",
+      "* Decisões precipitadas",
+      "* Queda na qualidade das entregas",
+      "* Desgaste físico e emocional",
+      "* Perda de credibilidade",
+      "",
+      "A raiz do problema",
+      "A urgência raramente nasce do nada. Adiar o importante é o caminho direto para o regime de emergência constante. Quem vive apagando incêndios raramente tem tempo para preveni-los.",
+      "",
+      "Esfera 3",
+      "Esfera Circunstancial",
+      "A Esfera Circunstancial engloba atividades desnecessárias ou excessivas que, embora pareçam inofensivas, são verdadeiros ladrões de tempo, muitas vezes realizadas por mera comodidade, pressão social, ou como uma fuga de tarefas mais desafiadoras. Caímos nela facilmente devido a hábitos enraizados, à enxurrada de distrações digitais e à busca por conforto imediato, que silenciosamente drenam nossa energia e foco sem gerar resultados reais. Seu perigo reside precisamente no fato de não parecer urgente ou evidentemente errada, disfarçando-se como 'ocupação' e nos desviando sutilmente de nossos verdadeiros objetivos e prioridades.",
+      "Consumo digital excessivo",
+      "Horas navegando nas redes sociais, vídeos sem fim e notificações que interrompem o foco sem agregar valor real.",
+      "Reuniões sem propósito",
+      "Encontros que não têm pauta clara, não geram decisões e consomem o tempo mais produtivo do dia.",
+      "Conversas e e-mails fúteis",
+      "Trocas de mensagens sem objetivo, correntes, brincadeiras e discussões que drenam energia sem retorno.",
+      "Resultado: frustração, sensação de ocupação sem progresso real, e distanciamento dos seus verdadeiros objetivos.",
+      "",
+      "Regra do Modelo",
+      "As Esferas Não Se Misturam",
+      "Um princípio fundamental",
+      "Uma das bases da Tríade do Tempo é que as três esferas são mutuamente exclusivas, um conceito poderoso, porém contraintuitivo. Frequentemente confundimos a real relevância de uma tarefa (importante) com a pressão de um prazo iminente (urgente), e é essa má interpretação que nos leva a priorizar de forma ineficaz. Reconhecer que nada pode ser simultaneamente importante e urgente reorienta radicalmente nossa forma de planejar e agir, abrindo caminho para uma produtividade consciente e estratégica.",
+      "A verdade é que uma tarefa genuinamente importante, quando negligenciada ou adiada, fatalmente se desloca automaticamente para a esfera da emergência ao se aproximar do seu prazo final, perdendo completamente seu caráter estratégico e transformando-se de ação proativa em mera reação sob pressão.",
+      "",
+      "Perfis Comportamentais",
+      "Qual é o seu perfil?",
+      "A forma como você distribui seu tempo entre as três esferas revela um perfil comportamental distinto. Cada perfil tem características, desafios e potenciais únicos. Identificar o seu é o primeiro passo para uma transformação real."
+    ].join("\n");
+  }
+
+  // ===== Identificação e Geração Rica do Perfil =====
+  function triadPickProfile(A, B, C){
+    const a = Number(A), b = Number(B), c = Number(C);
+    let prof = {};
+
+    if(Math.abs(a - c) <= 6 && a > b && c > b){
+      prof = { 
+        nome: "🎪 O Equilibrista", 
+        subtitle: "Cabo de guerra entre urgências e distrações (Urgência ≈ Circunstância)",
+        desc: "Confunde movimento com progresso e ocupação com produtividade.",
+        texto: "Encontra-se em um cabo de guerra constante entre apagar incêndios urgentes e preencher os momentos ociosos com distrações circunstanciais, dedicando pouquíssimo ou nenhum tempo ao que realmente importa. Resulta em sobrecarga e exaustão sem realizações significativas.\n\n• Alto estresse: Vive entre emergências e distrações.\n• Dificuldade em dizer não: Aceita tudo e acaba sobrecarregado.\n• Esgotamento constante: Ocupado 24h, realizado quase nunca.\n• Falta de planejamento: Cada dia é uma reação, não uma construção." 
+      };
+    }
+    else if(c >= b && c >= a && a >= b){
+      prof = { 
+        nome: "⚡ Super Homem", 
+        subtitle: "Urgência: predominante | Circunstancial: 2º lugar | Importante: negligenciada",
+        desc: "Vive em modo crise constante, sempre resolvendo o que está pegando fogo.",
+        texto: "É o profissional que parece sempre ocupado, vivendo na adrenalina das crises e resolvendo tudo na última hora. É frequentemente elogiado por 'salvar o dia', o que ironicamente reforça esse padrão exaustivo. Com a agenda dominada por reações, raramente tem tempo para pensar estrategicamente. Embora os colegas o vejam como indispensável, ele está aprisionado em um ciclo insustentável.\n\nPossíveis consequências:\n😰 Estresse crônico e Cansaço extremo\n😔 Depressão e Insegurança\n🏥 Problemas de saúde"
+      };
+    }
+    else if(a >= b && a >= c && c >= b){
+      prof = { 
+        nome: "🍩 Homer Simpson", 
+        subtitle: "Circunstancial: predominante | Urgência: 2º lugar | Importante: ausente",
+        desc: "Vivendo ao acaso no piloto automático.",
+        texto: "Distribui seu tempo em trivialidades como redes sociais, conversas ociosas e pequenas distrações que oferecem um conforto imediato, mas não levam a lugar nenhum. A urgência surge como reações inevitáveis e a esfera importante praticamente não existe.\n\nRepresenta uma vida sem plano, projeto ou direção. O conforto da circunstância age como fuga do desconforto de encarar metas reais. A frustração no longo prazo é uma consequência amarga.\n\n💡 O desafio: Saia do banco do passageiro, assuma o piloto e comece a lutar pelos seus sonhos." 
+      };
+    }
+    else if(b >= a && b >= c && a >= c){
+      prof = { 
+        nome: "🦾 Homem de Ferro", 
+        subtitle: "Importante: predominante | Circunstancial: 2º lugar | Urgência: controlada",
+        desc: "Perfil de alto desempenho, focado em planejamento, estratégia e entrega de valor.",
+        texto: "Vive prioritariamente na esfera do importante. Não apenas trabalha duro, mas de forma inteligente, com visão clara de seus objetivos. Antecipa problemas antes que se tornem urgências, mantendo a calma sob pressão. Gera resultados impressionantes e um profundo senso de propósito.\n\n⚠️ Ponto de atenção: O risco reside na forma como a esfera circunstancial pode se infiltrar gradualmente, através de lazer excessivo ou redes sociais, erodindo o foco sutilmente."
+      };
+    }
+    else if(b >= a && b >= c && c >= a){
+      prof = { 
+        nome: "🔨 Super Poderoso Thor", 
+        subtitle: "Importante: dominante | O perfil mais próximo da Tríade Ideal",
+        desc: "Sinônimo de preparo, planejamento e alto valor entregue.",
+        texto: "Representa o mais alto nível de gestão do tempo. Essa maestria é resultado de hábitos deliberados e visão cristalina. Não apenas resolve problemas, ele os antecipa. Domina a arte de dizer 'não' ao urgente e ao trivial para proteger seu tempo estratégico.\n\nA circunstância existe como descanso intencional, alimentando seu desempenho e traduzindo-se em excelência e equilíbrio.\n\n🎯 Próximo passo: Refinamento contínuo para eliminar os últimos focos de urgência." 
+      };
+    }
+    else if(b >= a && b >= c) {
+      prof = { nome: "Predominância em Importância (B)", subtitle: "Foco no importante", desc: "", texto: "Você tende a priorizar atividades relevantes e com resultado." };
+    }
+    else if(c >= a && c >= b) {
+      prof = { nome: "Predominância em Urgência (C)", subtitle: "Foco no urgente", desc: "", texto: "Você tende a operar com prazos curtos e pressão." };
+    }
+    else {
+      prof = { nome: "Predominância em Circunstância (A)", subtitle: "Foco no circunstancial", desc: "", texto: "Você tende a gastar tempo com atividades desnecessárias/excessivas." };
+    }
+    
+    // Associa a Esfera Correta Baseada no Perfil Calculado (Imp, Urg, Cir)
+    if (prof.nome.includes("Super Homem")) prof.sphereBase64 = createSphereBase64(10, 65, 25);
+    else if (prof.nome.includes("Homer")) prof.sphereBase64 = createSphereBase64(10, 15, 75);
+    else if (prof.nome.includes("Equilibrista")) prof.sphereBase64 = createSphereBase64(10, 45, 45);
+    else if (prof.nome.includes("Ferro")) prof.sphereBase64 = createSphereBase64(65, 10, 25);
+    else if (prof.nome.includes("Thor")) prof.sphereBase64 = createSphereBase64(70, 20, 10);
+    else prof.sphereBase64 = null;
+
+    return prof;
+  }
+
+  // ========================================
+  // 📄 GERAÇÃO DO PDF - COM LAYOUT PREMIUM
+  // ========================================
+  async function generatePdfDocAndFileName() {
+    const data = window._triadeData;
+    if (!data) throw new Error("Sem dados para gerar PDF.");
+    if (!window.jspdf) throw new Error("jsPDF não está disponível.");
+    
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    const pageW = 210, pageH = 297;
+    const margin = 14;
+    const contentW = pageW - margin * 2;
+    let y = margin;
+
+    const { prettyData, totals, percentages, energyLeak, triadChartImg, idealChartImg } = data;
+    const name = prettyData.nome;
+    const profession = prettyData.profissao;
+    const age = prettyData.idade;
+    const email = prettyData.email;
+
+    function newPageIfNeeded(extraH) {
+      if (y + extraH > pageH - margin) { doc.addPage(); y = margin; }
+    }
+
+    function addH1(text) {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(16);
+      doc.setTextColor(2, 136, 209);
+      newPageIfNeeded(10);
+      doc.text(text, pageW / 2, y, { align: "center" });
+      y += 9;
+      doc.setTextColor(0, 0, 0);
+    }
+
+    function addH2(text) {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      doc.setTextColor(0, 64, 128);
+      newPageIfNeeded(8);
+      doc.text(text, margin, y);
+      y += 7;
+      doc.setTextColor(0, 0, 0);
+    }
+
+    function addKeyValue(label, value) {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      const left = `${label}:`;
+      const leftW = doc.getTextWidth(left);
+      newPageIfNeeded(5);
+      doc.text(left, margin, y);
+      doc.setFont("helvetica", "normal");
+      doc.text(String(value), margin + leftW + 2, y);
+      y += 5;
+    }
+
+    function addParagraph(text, fontSize = 10, lineH = 4.8) {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(fontSize);
+      const lines = doc.splitTextToSize(String(text), contentW);
+      lines.forEach(ln => {
+        newPageIfNeeded(lineH);
+        doc.text(ln, margin, y);
+        y += lineH;
+      });
+      y += 2;
+    }
+
+    function addImageContain(imgData, boxX, boxY, boxW, boxH) {
+      if(!imgData) return;
+      try {
+        const props = doc.getImageProperties(imgData);
+        const imgW = props.width || 1;
+        const imgH = props.height || 1;
+        const scale = Math.min(boxW / imgW, boxH / imgH);
+        const drawW = imgW * scale;
+        const drawH = imgH * scale;
+        const dx = boxX + (boxW - drawW) / 2;
+        const dy = boxY + (boxH - drawH) / 2;
+        doc.addImage(imgData, "PNG", dx, dy, drawW, drawH);
+      } catch(e) {}
+    }
+
+    addH1("ImpulsoCoaching");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(14);
+    doc.setTextColor(0, 64, 128);
+    doc.text("Teste da Tríade do Tempo", pageW / 2, y, { align: "center" });
+    doc.setTextColor(0, 0, 0);
+    y += 10;
+    
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(71, 85, 105);
+    doc.text(`Gerado em: ${new Date().toLocaleString("pt-BR")}`, pageW / 2, y, { align: "center" });
+    doc.setTextColor(0, 0, 0);
+    y += 10;
+
+    addH2("1) Dados do participante");
+    addKeyValue("Nome", sanitizeInput(name));
+    addKeyValue("Profissão", sanitizeInput(profession));
+    addKeyValue("Idade", sanitizeInput(String(age)));
+    addKeyValue("E-mail", sanitizeInput(email));
+    y += 3;
+
+    addH2("2) Distribuição (%)");
+    addKeyValue("Importância (B)", `${Number(percentages.B).toFixed(1)}%`);
+    addKeyValue("Urgência (C)", `${Number(percentages.C).toFixed(1)}%`);
+    addKeyValue("Circunstância (A)", `${Number(percentages.A).toFixed(1)}%`);
+    y += 3;
+
+    addH2("3) Pontuação");
+    addKeyValue("A/B/C", `${totals.A}/${totals.B}/${totals.C}`);
+    addKeyValue("Total Geral", totals.General);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(220, 38, 38);
+    newPageIfNeeded(6);
+    doc.text(`Vazamento de Energia (A + C): ${energyLeak}`, margin, y);
+    doc.setTextColor(0, 0, 0);
+    y += 8;
+
+    const prof = triadPickProfile(Number(percentages.A), Number(percentages.B), Number(percentages.C));
+    addH2("4) Resumo do Perfil Identificado");
+    addParagraph(`Você se encaixa predominantemente no perfil: ${prof.nome}. Veja a seção 7 para o detalhamento completo.`, 10, 4.8);
+
+    addH2("5) Gráficos");
+    const boxSize = 85;
+    const gap = 10;
+    const boxY = y + 3;
+    newPageIfNeeded(boxSize + 18);
+
+    doc.setDrawColor(207, 230, 255);
+    doc.roundedRect(margin, boxY, boxSize, boxSize, 3, 3, "S");
+    doc.roundedRect(margin + boxSize + gap, boxY, boxSize, boxSize, 3, 3, "S");
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.text("Sua Tríade", margin + boxSize / 2, boxY - 2, { align: "center" });
+    doc.text("Tríade Ideal", margin + boxSize + gap + boxSize / 2, boxY - 2, { align: "center" });
+
+    if (triadChartImg) addImageContain(triadChartImg, margin, boxY, boxSize, boxSize);
+    if (idealChartImg) addImageContain(idealChartImg, margin + boxSize + gap, boxY, boxSize, boxSize);
+    y = boxY + boxSize + 15;
+
+    // ==========================================
+    // SESSÃO DE MATERIAL COMPLETO
+    // ==========================================
+    addH2("6) Material de Apoio - Entendendo as Esferas");
+
+    function addSphereExpl(title, colorRGB, text) {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.setTextColor(colorRGB[0], colorRGB[1], colorRGB[2]);
+      newPageIfNeeded(10);
+      doc.text(title, margin, y);
+      y += 5;
+      doc.setTextColor(0, 0, 0);
+      addParagraph(text, 9, 4.2);
+    }
+
+    addSphereExpl("Esfera Importante (Azul) - A Estrada Certa", [0, 92, 230], "A esfera do Importante reúne todas as atividades relevantes que geram resultados de curto, médio e longo prazo. É aqui que residem seus projetos de vida, metas profissionais, saúde, relacionamentos e desenvolvimento pessoal. Tarefas importantes que possuem prazo de execução nunca são urgentes — desde que sejam cumpridas dentro do tempo previsto.\n\nAtenção ao prazo: Uma tarefa importante pode tornar-se urgente se não for realizada no tempo adequado. O adiamento sistemático é o principal inimigo. Viver na esfera importante é viver com propósito, estratégia e resultados consistentes.");
+    addSphereExpl("Esfera da Urgência (Vermelha)", [255, 51, 51], "Abrange atividades para as quais o tempo está curto ou já se esgotou. Elas chegam em cima da hora e geralmente causam pressão, estresse e reações emocionais intensas. Causas comuns: Relatórios inesperados, esquecimentos e atrasos, reuniões emergenciais e problemas de saúde.\n\nConsequências: Estresse elevado, decisões precipitadas, queda na qualidade das entregas, desgaste físico e emocional. A raiz do problema: A urgência raramente nasce do nada. Adiar o importante é o caminho direto para o regime de emergência constante.");
+    addSphereExpl("Esfera Circunstancial (Amarela)", [212, 160, 23], "Engloba atividades desnecessárias ou excessivas que, embora pareçam inofensivas, são verdadeiros ladrões de tempo, realizadas por mera comodidade ou fuga de tarefas desafiadoras. Exemplos: consumo digital excessivo, reuniões sem propósito e e-mails fúteis.\n\nSeu perigo reside em disfarçar-se como 'ocupação', desviando-nos sutilmente de nossos verdadeiros objetivos. Resultado: frustração, sensação de ocupação sem progresso real, e distanciamento dos seus propósitos.");
+    y += 5;
+
+    // ==========================================
+    // SESSÃO DOS CARDS COM ESFERA DE 50mm (5cm)
+    // ==========================================
+    addH2("7) Detalhamento dos Perfis Comportamentais (Cards Oficiais)");
+
+    const profilesData = [
+      triadPickProfile(25, 10, 65), // Super Homem
+      triadPickProfile(75, 10, 15), // Homer Simpson
+      triadPickProfile(45, 10, 45), // O Equilibrista
+      triadPickProfile(25, 65, 10), // Homem de Ferro
+      triadPickProfile(10, 70, 20)  // Super Poderoso Thor
+    ];
+
+    profilesData.forEach(prof => {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(13);
+      let textH = 6; 
+      
+      const textColW = contentW - 65; // Desconta 65mm para a Esfera que tem 50mm de largura
+
+      doc.setFontSize(8.5);
+      const subLines = doc.splitTextToSize(prof.subtitle, textColW); 
+      textH += (subLines.length * 4) + 2;
+      
+      doc.setFontSize(9.5);
+      const descLines = doc.splitTextToSize(prof.desc, textColW);
+      textH += (descLines.length * 4.5) + 2;
+      
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      const bodyLines = doc.splitTextToSize(prof.texto, textColW);
+      textH += (bodyLines.length * 4.2) + 2;
+
+      // Garante que a caixa tenha pelo menos 60mm de altura para caber a esfera de 50mm com folga
+      const cardHeight = Math.max(60, textH + 12);
+      newPageIfNeeded(cardHeight + 10); 
+      
+      const boxY = y;
+      
+      doc.setFillColor(248, 250, 252);
+      doc.setDrawColor(207, 230, 255);
+      doc.roundedRect(margin, boxY, contentW, cardHeight, 3, 3, "FD");
+
+      // Apenas a Esfera Colorida renderizada em 50x50 mm (5 cm)
+      if (prof.sphereBase64) {
+        // Centraliza verticalmente a esfera dentro do Card
+        const sphereY = boxY + (cardHeight / 2) - 25;
+        doc.addImage(prof.sphereBase64, "PNG", margin + 5, sphereY, 50, 50);
+      }
+
+      // Impressão da Coluna de Textos (Começando a 60mm da margem esquerda)
+      const textX = margin + 60;
+      let textY = boxY + 8;
+      
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(13);
+      doc.setTextColor(6, 59, 122);
+      doc.text(prof.nome, textX, textY);
+      
+      textY += 5;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8.5);
+      doc.setTextColor(100, 116, 139);
+      doc.text(subLines, textX, textY);
+      textY += (subLines.length * 4);
+      textY += 2;
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9.5);
+      doc.setTextColor(15, 23, 42);
+      doc.text(descLines, textX, textY);
+      textY += (descLines.length * 4.5);
+      
+      textY += 2;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(71, 85, 105);
+      doc.text(bodyLines, textX, textY);
+
+      y = boxY + cardHeight + 8; 
+    });
+
+    // ==========================================
+    // SESSÃO DE TEXTO CRU DO MATERIAL
+    // ==========================================
+    addH2("8) Texto completo de apoio (Referência do modelo)");
+    const materialLines = String(triadMaterialFullText()).replace(/\r\n/g, "\n").split("\n");
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(50, 50, 50);
+
+    materialLines.forEach(line => {
+      if (line.trim() === "") {
+        newPageIfNeeded(4.8);
+        y += 4.8;
+        return;
+      }
+      const wrapped = doc.splitTextToSize(line, contentW);
+      wrapped.forEach(wln => {
+        newPageIfNeeded(4.8);
+        doc.text(wln, margin, y);
+        y += 4.8;
+      });
+    });
+
+    newPageIfNeeded(14);
+    y += 5;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(71, 85, 105);
+    doc.text("Fonte: Instituto Impulso Coaching – www.impulsocoaching.com.br", pageW / 2, y, { align: "center" });
+    doc.setTextColor(0, 0, 0);
+    y += 6;
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(10);
+    doc.text("Rogério Braga", pageW / 2, y, { align: "center" });
+
+    const safeName = sanitizeInput(name).replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_]/g, "");
+    const pdfFileName = `Resultado_Triade_do_Tempo_${safeName}.pdf`;
+
+    return { doc, pdfFileName };
+  }
+
+  // ========================================
+  // 🚀 ORQUESTRAÇÃO DE ENVIO AUTOMÁTICO
+  // ========================================
+  async function autoSendWithPdf() {
+    if (autoSendInProgress || autoSendDone) return;
+    autoSendInProgress = true;
+    setAutoSendStatus("⏳ Gerando relatório e enviando automaticamente...", "pending");
+    
+    try {
+      const data = window._triadeData;
+      if (!data) throw new Error("Sem dados.");
+
+      let triadChartImg = null;
+      let idealChartImg = null;
+      try {
+        triadChartImg = charts.user ? charts.user.toBase64Image() : document.getElementById("triadChart").toDataURL("image/png");
+        idealChartImg = charts.ideal ? charts.ideal.toBase64Image() : document.getElementById("idealTriadChart").toDataURL("image/png");
+      } catch(e) {}
+
+      data.triadChartImg = triadChartImg;
+      data.idealChartImg = idealChartImg;
+
+      const { doc, pdfFileName } = await generatePdfDocAndFileName();
+      const base64 = doc.output("datauristring").split(",")[1];
+
+      const prof = triadPickProfile(data.percentages.A, data.percentages.B, data.percentages.C);
+
+      const resumoTriade =
+        `A/B/C: ${data.totals.A}/${data.totals.B}/${data.totals.C}\n` +
+        `Importância (B): ${data.percentages.B}%\n` +
+        `Urgência (C): ${data.percentages.C}%\n` +
+        `Circunstância (A): ${data.percentages.A}%\n\n` +
+        `Total Geral: ${data.totals.General}\n` +
+        `Vazamento de Energia: ${data.energyLeak}\n\n` +
+        `Perfil: ${prof.nome}\n${prof.texto}`;
+
+      const payload = {
+        apiKey: API_KEY,
+        testId: "triade_v1",
+        nome: data.prettyData.nome,
+        email: data.prettyData.email,
+        idade: data.prettyData.idade,
+        profissao: data.prettyData.profissao,
+        resumo: resumoTriade,
+        pdfBase64: base64,
+        pdfFileName: pdfFileName,
+        sendEmail: true
+      };
+
+      await postResultToScript(payload);
+      await wait(1500);
+
+      autoSendDone = true;
+      document.getElementById('auto-send-status').textContent = "";
+      document.getElementById('final-success-message').style.display = 'block';
+
+    } catch (e) {
+      console.error(e);
+      emailSendAttempts++;
+      if (emailSendAttempts < MAX_EMAIL_ATTEMPTS) {
+        setAutoSendStatus(`⚠️ Tentativa ${emailSendAttempts}/${MAX_EMAIL_ATTEMPTS} - Falha na conexão. Tentando novamente...`, "error");
+        await wait(3000);
+        await autoSendWithPdf();
+      } else {
+        setAutoSendStatus("❌ Falha no processamento. Por favor, contate impulsoflow@gmail.com", "error");
+      }
+    } finally {
+      autoSendInProgress = false;
+    }
+  }
+
+  // ========================================
+  // 🏁 INÍCIO E NAVEGAÇÃO
+  // ========================================
+  const questions = [
+    "1. Costumo ir a eventos, festas ou cursos, mesmo sem ter muita vontade, para agradar meu chefe, amigos ou família.",
+    "2. Não consigo realizar tudo que me propus fazer no dia e preciso fazer hora extra e levar trabalho para casa.",
+    "3. Quando recebo uma nova notificação no WhatsApp, Instagram, e-mail, etc, costumo dar uma olhada para checar o conteúdo.",
+    "4. Costumo visitar com regularidade pessoas relevantes em minha vida como amigos, parentes e filhos.",
+    "5. É comum aparecer problemas inesperados no meu dia a dia.",
+    "6. Assumo compromissos com outras pessoas ou aceito novas funções na empresa, mesmo que não goste muito da nova atividade, se for para aumentar meus rendimentos ou obter uma promoção.",
+    "7. Tenho um tempo definido para dedicar a mim mesmo e nele, posso fazer o que quiser.",
+    "8. Costumo deixar para fazer relatórios, imposto de renda, compras de Natal, estudar para provas e outras tarefas perto do prazo de entrega.",
+    "9. Nos dias de descanso, costumo passar boa parte do dia assistindo à televisão, jogando ou rolando o feed de redes sociais, internet e apps como WhatsApp.",
+    "10. Faço um planejamento por escrito de tudo que preciso fazer durante minha semana.",
+    "11. Posso afirmar que estou conseguindo realizar tudo que gostaria em minha vida e que o tempo está passando na velocidade correta.",
+    "12. Costumo participar de reuniões sem saber direito o conteúdo, o porquê devo participar ou a que resultado aquele encontro pode levar.",
+    "13. Consigo melhores resultados e me sinto mais produtivo quando estou sob pressão ou com o prazo curto.",
+    "14. Quando quero alguma coisa, deixo esse objetivo por escrito, estabeleço prazos em minha agenda, monitoro os resultados obtidos e os comparo com os esperados.",
+    "15. Leio muitas mensagens desnecessárias no WhatsApp, Instagram, e-mails, etc., com piadas, correntes, propagandas, apresentações, produtos e etc.",
+    "16. Estive atrasado com minhas tarefas ou reuniões nas últimas semanas.",
+    "17. Faço esporte com regularidade, me alimento da forma adequada e tenho o lazer que gostaria.",
+    "18. É comum reduzir meu horário de almoço ou até mesmo comer enquanto trabalho para concluir um projeto ou tarefa."
+  ];
+
+  const optLabels = [
+    { v: 1, t: "1. Nunca" },
+    { v: 2, t: "2. Raramente" },
+    { v: 3, t: "3. Às vezes" },
+    { v: 4, t: "4. Quase sempre" },
+    { v: 5, t: "5. Sempre" }
+  ];
+
+  const circumstance = [1, 6, 9, 12, 15];
+  const importance   = [4, 7, 10, 11, 14, 17];
+  const urgency      = [2, 3, 5, 8, 13, 16, 18];
+
+  let currentIndex = 0;
+  let autoAdvanceTimeout = null;
+  const answers = new Array(18).fill(null);
+  let charts = { user: null, ideal: null };
+
+  const stepIntro = document.getElementById("step-intro");
+  const stepQuiz = document.getElementById("step-quiz");
+  const stepResults = document.getElementById("step-results");
+
+  const elName = document.getElementById("name");
+  const elProfession = document.getElementById("profession");
+  const elAge = document.getElementById("age");
+  const elEmail = document.getElementById("email");
+
+  const elNameErr = document.getElementById("name-error");
+  const elProfErr = document.getElementById("profession-error");
+  const elAgeErr = document.getElementById("age-error");
+  const elEmailErr = document.getElementById("email-error");
+
+  const btnStart = document.getElementById("btn-start");
+  const btnPrev = document.getElementById("btn-prev");
+  const btnNext = document.getElementById("btn-next");
+  const btnBackQuiz = document.getElementById("btn-back-quiz");
+
+  const elQCurrent = document.getElementById("q-current");
+  const elAnsweredCount = document.getElementById("answered-count");
+  const elProgressFill = document.getElementById("progress-fill");
+  const elQuestionText = document.getElementById("question-text");
+  const elOptions = document.getElementById("options");
+
+  function showStep(step){
+    [stepIntro, stepQuiz, stepResults].forEach(s => s.classList.remove("active"));
+    step.classList.add("active");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function validateIntro(){
+    const name = elName.value.trim();
+    const prof = elProfession.value.trim();
+    const age = elAge.value.trim();
+    const email = elEmail.value.trim();
+
+    const okName = !!name;
+    const okProf = !!prof;
+    const okAge = isValidAge(age);
+    const okEmail = validateEmail(email);
+
+    elNameErr.style.display = okName ? "none" : "block";
+    elProfErr.style.display = okProf ? "none" : "block";
+    elAgeErr.style.display = okAge ? "none" : "block";
+    elEmailErr.style.display = okEmail ? "none" : "block";
+
+    return okName && okProf && okAge && okEmail;
+  }
+
+  elName.addEventListener("input", validateIntro);
+  elProfession.addEventListener("input", validateIntro);
+  elAge.addEventListener("input", validateIntro);
+  elEmail.addEventListener("input", validateIntro);
+
+  btnStart.addEventListener("click", () => {
+    if(!validateIntro()) return;
+    showStep(stepQuiz);
+    renderQuestion();
+    updateProgressUI();
+  });
+
+  function renderQuestion(){
+    elQCurrent.textContent = String(currentIndex + 1);
+    elQuestionText.textContent = questions[currentIndex];
+    elOptions.innerHTML = "";
+
+    const selected = answers[currentIndex];
+
+    optLabels.forEach((opt) => {
+      const div = document.createElement("div");
+      div.className = "opt";
+      div.setAttribute("role", "radio");
+      div.setAttribute("tabindex", "0");
+      div.setAttribute("aria-checked", selected === opt.v ? "true" : "false");
+      div.dataset.value = String(opt.v);
+      div.textContent = opt.t;
+
+      div.addEventListener("click", () => selectOption(opt.v));
+      div.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          selectOption(opt.v);
+        }
+      });
+
+      elOptions.appendChild(div);
+    });
+
+    btnPrev.disabled = currentIndex === 0;
+    
+    // Mostra o botão "Finalizar" apenas na última pergunta
+    if(currentIndex === 17){
+      btnNext.style.display = "inline-flex";
+      btnNext.textContent = "Finalizar e Ver Resultado";
+    } else {
+      btnNext.style.display = "none";
+    }
+  }
+
+  function selectOption(value){
+    answers[currentIndex] = value;
+    [...elOptions.children].forEach((child) => {
+      child.setAttribute("aria-checked", child.dataset.value === String(value) ? "true" : "false");
+    });
+    updateProgressUI();
+
+    // Limpa qualquer timeout ativo para evitar saltos duplos
+    if(autoAdvanceTimeout) clearTimeout(autoAdvanceTimeout);
+
+    // Avanço automático se não for a última pergunta
+    if(currentIndex < 17) {
+      autoAdvanceTimeout = setTimeout(() => {
+        currentIndex++;
+        renderQuestion();
+        updateProgressUI();
+      }, 400); // 400ms delay para que o usuário veja que o item foi selecionado antes de mudar
+    }
+  }
+
+  function updateProgressUI(){
+    const answered = answers.filter(v => v !== null).length;
+    elAnsweredCount.textContent = String(answered);
+    const percent = Math.round((answered / 18) * 100);
+    elProgressFill.style.width = `${percent}%`;
+  }
+
+  btnPrev.addEventListener("click", () => {
+    if(autoAdvanceTimeout) clearTimeout(autoAdvanceTimeout);
+    if(currentIndex > 0){
+      currentIndex--;
+      renderQuestion();
+      updateProgressUI();
+    }
+  });
+
+  function computeTotals(){
+    let totals = { A: 0, B: 0, C: 0, General: 0 };
+    for(let i=1; i<=18; i++){
+      const value = Number(answers[i-1]);
+      if (circumstance.includes(i)) totals.A += value;
+      else if (importance.includes(i)) totals.B += value;
+      else if (urgency.includes(i)) totals.C += value;
+    }
+    totals.General = totals.A + totals.B + totals.C;
+    return totals;
+  }
+
+  function computePercentages(totals){
+    const A = totals.General ? ((totals.A / totals.General) * 100) : 0;
+    const B = totals.General ? ((totals.B / totals.General) * 100) : 0;
+    const C = totals.General ? ((totals.C / totals.General) * 100) : 0;
+    return {
+      A: Number(A.toFixed(1)),
+      B: Number(B.toFixed(1)),
+      C: Number(C.toFixed(1))
+    };
+  }
+
+  function ensureChartsRegistered(){
+    if (!window.Chart) return;
+    if (window.ChartDataLabels) {
+      if (!ensureChartsRegistered._done) {
+        Chart.register(window.ChartDataLabels);
+        ensureChartsRegistered._done = true;
+      }
+    }
+  }
+
+  function destroyCharts(){
+    try{
+      if (charts.user) { charts.user.destroy(); charts.user = null; }
+      if (charts.ideal) { charts.ideal.destroy(); charts.ideal = null; }
+    } catch(e){}
+  }
+
+  function renderCharts(percentages){
+    if (!window.Chart) return;
+    ensureChartsRegistered();
+    destroyCharts();
+
+    const pA = Number(percentages.A);
+    const pB = Number(percentages.B);
+    const pC = Number(percentages.C);
+
+    const commonOptions = (titleText) => ({
+      devicePixelRatio: 4, 
+      responsive: true,
+      maintainAspectRatio: true,
+      aspectRatio: 1,
+      animation: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { enabled: true },
+        datalabels: {
+          formatter: (value) => `${Number(value).toFixed(1)}%`,
+          color: (context) => context.dataset.backgroundColor[context.dataIndex] === "#FFD700" ? "#000000" : "#FFFFFF",
+          font: { size: 11, weight: "bold" }, 
+          anchor: "center",
+          align: "center"
+        },
+        title: {
+          display: true,
+          text: titleText,
+          font: { size: 16, weight: "bold" },
+          color: "#0b63ce",
+          padding: { top: 10, bottom: 10 }
+        }
+      }
+    });
+
+    const userCtx = document.getElementById("triadChart").getContext("2d");
+    charts.user = new Chart(userCtx, {
+      type: "pie",
+      data: {
+        labels: ["Circunstância", "Importância", "Urgência"],
+        datasets: [{
+          data: [pA, pB, pC],
+          backgroundColor: ["#FFD700", "#0000FF", "#FF0000"],
+          borderColor: ["#FFD700", "#0000FF", "#FF0000"],
+          borderWidth: 1
+        }]
+      },
+      options: commonOptions("Sua Tríade")
+    });
+
+    const idealCtx = document.getElementById("idealTriadChart").getContext("2d");
+    charts.ideal = new Chart(idealCtx, {
+      type: "pie",
+      data: {
+        labels: ["Circunstância", "Importância", "Urgência"],
+        datasets: [{
+          data: [10, 70, 20],
+          backgroundColor: ["#FFD700", "#0000FF", "#FF0000"],
+          borderColor: ["#FFD700", "#0000FF", "#FF0000"],
+          borderWidth: 1
+        }]
+      },
+      options: commonOptions("Tríade Ideal")
+    });
+  }
+
+  function showResults(){
+    const answered = answers.filter(v => v !== null).length;
+    if (answered !== 18){
+      alert("Responda todas as 18 perguntas antes de ver o resultado.");
+      return null;
+    }
+    const name = elName.value.trim();
+    const profession = elProfession.value.trim();
+    const age = elAge.value.trim();
+    const email = elEmail.value.trim();
+
+    if (!validateIntro()) return null;
+
+    const totals = computeTotals();
+    const percentages = computePercentages(totals);
+    const energyLeak = (totals.A + totals.C).toFixed(1);
+
+    document.getElementById("result-title").textContent = `${sanitizeInput(name)} (${sanitizeInput(profession)}) - Sua Tríade do Tempo`;
+
+    document.getElementById("percentA").textContent = `${percentages.A}%`;
+    document.getElementById("percentB").textContent = `${percentages.B}%`;
+    document.getElementById("percentC").textContent = `${percentages.C}%`;
+
+    document.getElementById("barA").style.width = `${percentages.A}%`;
+    document.getElementById("barB").style.width = `${percentages.B}%`;
+    document.getElementById("barC").style.width = `${percentages.C}%`;
+
+    document.getElementById("totalA").textContent = totals.A;
+    document.getElementById("totalB").textContent = totals.B;
+    document.getElementById("totalC").textContent = totals.C;
+    document.getElementById("totalGeneral").textContent = totals.General;
+    document.getElementById("energyLeak").textContent = energyLeak;
+
+    // Injeção do texto rico e formatado direto na tela
+    const prof = triadPickProfile(percentages.A, percentages.B, percentages.C);
+    document.getElementById("profile-name").textContent = `Perfil Identificado: ${prof.nome}`;
+    document.getElementById("profile-subtitle").textContent = prof.subtitle;
+    document.getElementById("profile-desc").textContent = (prof.desc ? prof.desc + "\n\n" : "") + prof.texto;
+
+    renderCharts(percentages);
+    showStep(stepResults);
+
+    const prettyData = { nome: name, profissao: profession, idade: age, email: email };
+    return { prettyData, totals, percentages, energyLeak };
+  }
+
+  btnNext.addEventListener("click", async () => {
+    if(answers[currentIndex] === null){
+      alert("Selecione uma opção para continuar.");
+      return;
+    }
+    
+    // Só processa resultados se estivermos no botão da última pergunta
+    if(currentIndex === 17){
+      const payload = showResults();
+      if (!payload) return;
+      
+      window._triadeData = payload;
+
+      // Aguarda 1 segundo para garantir a renderização dos gráficos
+      setTimeout(() => {
+          autoSendWithPdf();
+      }, 1000);
+    }
+  });
+
+  btnBackQuiz.addEventListener("click", () => {
+    showStep(stepQuiz);
+    renderQuestion();
+    updateProgressUI();
+  });
+
+  renderQuestion();
+  updateProgressUI();
+  </script>
+</body>
+</html>
