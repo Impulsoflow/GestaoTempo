@@ -590,74 +590,6 @@
   let emailSendAttempts = 0;
   const MAX_EMAIL_ATTEMPTS = 3;
 
-  // ============================================================================
-  // 🖼️ IMAGENS BASE64 DOS PERSONAGENS (OFFLINE / DIRETAS)
-  // ============================================================================
-  // IMPORTANTE: Cole as strings Base64 completas aqui dentro no lugar dos "..."
-  const RAW_B64 = {
-    superHomem: "data:image/webp;base64,UklGRiIAAABXRUJQVlA4WAoAAAAQAAAADwAADwAAQUxQSDIAAAABF0Ag...",
-    homer: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAkGBxISEhUTEhIWFRUVFRUVFRUVFRUVFRUVFRUXFhUVFRUYHSggGBolHRUVITEhJSkrLi4uFx8zODMtNygtLisBCgoKDg0OFxAQFy0dHR0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLf...",
-    equilibrista: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAkGBxAQEBUQEBAVFRUVFRUVFRUVFRUVFRUVFRUWFhUVFRUYHSggGBolHRUVITEhJSkrLi4uFx8zODMtNygtLisBCgoKDg0OFxAQFy0dHR0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLf...",
-    homemDeFerro: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAkGBxAQEBUQEBAVFRUVFRUVFRUVFRUVFRUVFRUWFhUVFRUYHSggGBolHRUVITEhJSkrLi4uFx8zODMtNygtLisBCgoKDg0OFxAQFy0dHR0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLf...",
-    thor: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAkGBxAQEBUQEBAVFRUVFRUVFRUVFRUVFRUVFRUWFhUVFRUYHSggGBolHRUVITEhJSkrLi4uFx8zODMtNygtLisBCgoKDg0OFxAQFy0dHR0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLf..."
-  };
-
-  window.CONFIG_AVATARS = {
-    superHomem: null, homer: null, equilibrista: null, homemDeFerro: null, thor: null
-  };
-
-  function generateFallbackAvatar(name, color) {
-    const canvas = document.createElement("canvas");
-    canvas.width = 200; canvas.height = 200;
-    const ctx = canvas.getContext("2d");
-    ctx.beginPath(); ctx.arc(100, 100, 100, 0, Math.PI * 2);
-    ctx.fillStyle = color; ctx.fill();
-    ctx.font = "bold 60px Arial"; ctx.fillStyle = "#fff";
-    ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    const initials = name.split(" ").slice(0,2).map(n=>n[0]).join("");
-    ctx.fillText(initials, 100, 105);
-    return canvas.toDataURL("image/png");
-  }
-
-  async function processAvatars() {
-    for (const key in RAW_B64) {
-      try {
-        const base64Str = RAW_B64[key];
-        if(base64Str.includes("...")) throw new Error("Base64 truncado pelo usuário");
-
-        const img = new Image();
-        const finalB64 = await new Promise((resolve, reject) => {
-          img.onload = () => {
-            const size = Math.min(img.width, img.height);
-            const canvas = document.createElement("canvas");
-            canvas.width = size; canvas.height = size;
-            const ctx = canvas.getContext("2d");
-            const sx = (img.width - size) / 2;
-            const sy = (img.height - size) / 2;
-            
-            ctx.beginPath();
-            ctx.arc(size/2, size/2, size/2, 0, Math.PI * 2);
-            ctx.closePath();
-            ctx.clip();
-            ctx.drawImage(img, sx, sy, size, size, 0, 0, size, size);
-            resolve(canvas.toDataURL("image/png"));
-          };
-          img.onerror = reject;
-          img.src = base64Str;
-        });
-        window.CONFIG_AVATARS[key] = finalB64;
-      } catch (err) {
-        console.warn("Falha ao processar base64 para", key, "- usando fallback.");
-      }
-    }
-    if(!window.CONFIG_AVATARS.superHomem) window.CONFIG_AVATARS.superHomem = generateFallbackAvatar("Super Homem", "#ff3333");
-    if(!window.CONFIG_AVATARS.homer) window.CONFIG_AVATARS.homer = generateFallbackAvatar("Homer Simpson", "#ffcc00");
-    if(!window.CONFIG_AVATARS.equilibrista) window.CONFIG_AVATARS.equilibrista = generateFallbackAvatar("O Equilibrista", "#ff9900");
-    if(!window.CONFIG_AVATARS.homemDeFerro) window.CONFIG_AVATARS.homemDeFerro = generateFallbackAvatar("Homem Ferro", "#005ce6");
-    if(!window.CONFIG_AVATARS.thor) window.CONFIG_AVATARS.thor = generateFallbackAvatar("Thor", "#003399");
-  }
-  processAvatars();
-
   // Função nativa que desenha a esfera 3D em altíssima qualidade
   function createSphereBase64(pImp, pUrg, pCir) {
     const canvas = document.createElement("canvas");
@@ -697,12 +629,10 @@
   function sanitizeInput(input) { return DOMPurify.sanitize(input); }
   function sanitizeText(s) { return DOMPurify.sanitize(String(s || "")); }
   function validateEmail(email) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); }
-
   function isValidAge(ageStr){
     const n = Number(ageStr);
     return Number.isFinite(n) && n >= 10 && n <= 120;
   }
-
   function setAutoSendStatus(msg, type = 'pending') {
     const el = document.getElementById("auto-send-status");
     if (el) {
@@ -724,6 +654,18 @@
       console.error("Erro ao enviar para Google Apps Script:", error);
       throw error;
     }
+  }
+
+  // ===== Material Completo do Relatório (Fornecido por Rogério) =====
+  function triadMaterialFullText(){
+    return [
+      "TRÍADE DO TEMPO — Coloque o relógio e a agenda para funcionarem",
+      "",
+      "A Tríade do Tempo é um modelo atualizado de classificação que mostra, gráfica e percentualmente, a forma como você utiliza suas horas.",
+      "O tempo é uma tríade composta de atividades importantes, urgentes e circunstanciais.",
+      "",    
+      "A forma como você distribui seu tempo entre as três esferas revela um perfil comportamental distinto. Cada perfil tem características, desafios e potenciais únicos. Identificar o seu é o primeiro passo para uma transformação real."
+    ].join("\n");
   }
 
   // ===== Identificação e Geração Rica do Perfil =====
@@ -781,31 +723,14 @@
       prof = { nome: "Predominância em Circunstância (A)", subtitle: "Foco no circunstancial", desc: "", texto: "Você tende a gastar tempo com atividades desnecessárias/excessivas." };
     }
     
-    // Associa a Esfera e o Avatar Baseado no Perfil Calculado
-    if (prof.nome.includes("Super Homem")) {
-      prof.sphereBase64 = createSphereBase64(10, 65, 25);
-      prof.imgBase64 = window.CONFIG_AVATARS?.superHomem;
-    }
-    else if (prof.nome.includes("Homer")) {
-      prof.sphereBase64 = createSphereBase64(10, 15, 75);
-      prof.imgBase64 = window.CONFIG_AVATARS?.homer;
-    }
-    else if (prof.nome.includes("Equilibrista")) {
-      prof.sphereBase64 = createSphereBase64(10, 45, 45);
-      prof.imgBase64 = window.CONFIG_AVATARS?.equilibrista;
-    }
-    else if (prof.nome.includes("Ferro")) {
-      prof.sphereBase64 = createSphereBase64(65, 10, 25);
-      prof.imgBase64 = window.CONFIG_AVATARS?.homemDeFerro;
-    }
-    else if (prof.nome.includes("Thor")) {
-      prof.sphereBase64 = createSphereBase64(70, 20, 10);
-      prof.imgBase64 = window.CONFIG_AVATARS?.thor;
-    }
-    else {
-      prof.sphereBase64 = null;
-      prof.imgBase64 = null;
-    }
+    // Associa a Esfera Correta Baseada no Perfil Calculado (Imp, Urg, Cir)
+    if (prof.nome.includes("Super Homem")) prof.sphereBase64 = createSphereBase64(10, 65, 25);
+    else if (prof.nome.includes("Homer")) prof.sphereBase64 = createSphereBase64(10, 15, 75);
+    else if (prof.nome.includes("Equilibrista")) prof.sphereBase64 = createSphereBase64(10, 45, 45);
+    else if (prof.nome.includes("Ferro")) prof.sphereBase64 = createSphereBase64(65, 10, 25);
+    else if (prof.nome.includes("Thor")) prof.sphereBase64 = createSphereBase64(70, 20, 10);
+    else prof.sphereBase64 = null;
+
     return prof;
   }
 
@@ -978,7 +903,7 @@
     y += 5;
 
     // ==========================================
-    // SESSÃO DOS CARDS (Com Avatar e Esfera)
+    // SESSÃO DOS CARDS COM ESFERA DE 50mm (5cm)
     // ==========================================
     addH2("7) Detalhamento dos Perfis Comportamentais (Cards Oficiais)");
 
@@ -995,7 +920,8 @@
       doc.setFontSize(13);
       let textH = 6; 
       
-      const textColW = contentW - 45; // Margem para as imagens
+      const textColW = contentW - 65; // Desconta 65mm para a Esfera que tem 50mm de largura
+
       doc.setFontSize(8.5);
       const subLines = doc.splitTextToSize(prof.subtitle, textColW); 
       textH += (subLines.length * 4) + 2;
@@ -1009,8 +935,8 @@
       const bodyLines = doc.splitTextToSize(prof.texto, textColW);
       textH += (bodyLines.length * 4.2) + 2;
 
-      // Card com altura suficiente para Avatar + Esfera (Mínimo de 75mm)
-      const cardHeight = Math.max(75, textH + 12);
+      // Garante que a caixa tenha pelo menos 60mm de altura para caber a esfera de 50mm com folga
+      const cardHeight = Math.max(60, textH + 12);
       newPageIfNeeded(cardHeight + 10); 
       
       const boxY = y;
@@ -1019,20 +945,15 @@
       doc.setDrawColor(207, 230, 255);
       doc.roundedRect(margin, boxY, contentW, cardHeight, 3, 3, "FD");
 
-      // Desenha o Avatar do Personagem
-      if (prof.imgBase64) {
-        doc.setFillColor(255, 255, 255);
-        doc.circle(margin + 20, boxY + 20, 16, "F"); 
-        doc.addImage(prof.imgBase64, "PNG", margin + 5, boxY + 5, 30, 30);
-      }
-      
-      // Desenha a Esfera Perfeita 3D logo abaixo
+      // Apenas a Esfera Colorida renderizada em 50x50 mm (5 cm)
       if (prof.sphereBase64) {
-        doc.addImage(prof.sphereBase64, "PNG", margin + 5, boxY + 40, 30, 30);
+        // Centraliza verticalmente a esfera dentro do Card
+        const sphereY = boxY + (cardHeight / 2) - 25;
+        doc.addImage(prof.sphereBase64, "PNG", margin + 5, sphereY, 50, 50);
       }
 
-      // Impressão da Coluna de Textos (Começando a 40mm da margem esquerda)
-      const textX = margin + 40;
+      // Impressão da Coluna de Textos (Começando a 60mm da margem esquerda)
+      const textX = margin + 60;
       let textY = boxY + 8;
       
       doc.setFont("helvetica", "bold");
@@ -1059,21 +980,16 @@
       doc.setFontSize(9);
       doc.setTextColor(71, 85, 105);
       doc.text(bodyLines, textX, textY);
+
       y = boxY + cardHeight + 8; 
     });
 
     // ==========================================
-    // SESSÃO DE TEXTO CRU DO MATERIAL (Referência do modelo)
-    function triadMaterialFullText(){
-      return [
-        "TRÍADE DO TEMPO — Coloque o relógio e a agenda para funcionarem",
-        "A Tríade do Tempo é um modelo atualizado de classificação que mostra, gráfica e percentualmente, a forma como você utiliza suas horas.",
-        "O tempo é uma tríade composta de atividades importantes, urgentes e circunstanciais."
-      ].join("\n");
-    }
+    // SESSÃO DE TEXTO CRU DO MATERIAL
+    // ==========================================
+    addH2("8) Texto completo de apoio (Referência do modelo)");
+    const materialLines = String(triadMaterialFullText()).replace(/\r\n/g, "\n").split("\n");
 
-    addH2("8) Referência de Encerramento");
-    const materialLines = String(triadMaterialFullText()).split("\n");
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
     doc.setTextColor(50, 50, 50);
@@ -1351,7 +1267,6 @@
 
   btnPrev.addEventListener("click", () => {
     if(autoAdvanceTimeout) clearTimeout(autoAdvanceTimeout);
-
     if(currentIndex > 0){
       currentIndex--;
       renderQuestion();
