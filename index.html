@@ -1018,7 +1018,7 @@
     doc.text("Rogério Braga", pageW / 2, y, { align: "center" });
 
     const safeName = sanitizeInput(name).replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_]/g, "");
-    const pdfFileName = `Triade:${safeName}.pdf`;
+    const pdfFileName = `Triade: ${safeName}.pdf`;
 
     return { doc, pdfFileName };
   }
